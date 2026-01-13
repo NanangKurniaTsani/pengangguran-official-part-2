@@ -1,40 +1,25 @@
 import Swal from 'https://cdn.jsdelivr.net/npm/sweetalert2@11/+esm';
 
+// --- LOGIKA GENERATE ID OTOMATIS ---
 function generateSequentialID(prefix, allData) {
-    // 1. Ambil tanggal hari ini untuk bagian tengah ID
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const dateCode = `${year}${month}${day}`;
+    const dateCode = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
 
     let maxNo = 0;
+    const relevantData = allData.filter(item => item.id && item.id.startsWith(`${prefix}_`));
 
-    // 2. Filter data yang sesuai dengan prefix dan tanggal hari ini
-    const relevantData = allData.filter(item => 
-        item.id && item.id.startsWith(`${prefix}_`)
-    );
-
-    // 3. Cari nomor urut (4 digit terakhir) yang paling besar
     relevantData.forEach(item => {
         const parts = item.id.split('_');
-        // Mengambil bagian terakhir dari ID (asumsi format selalu berakhir di _XXXX)
         const lastPart = parts[parts.length - 1];
         const no = parseInt(lastPart);
-        
-        if (!isNaN(no) && no > maxNo) {
-            maxNo = no;
-        }
+        if (!isNaN(no) && no > maxNo) maxNo = no;
     });
 
-    // 4. Tambahkan 1 ke nomor terbesar yang ditemukan
     const nextNo = String(maxNo + 1).padStart(4, '0');
-
-    // 5. Gabungkan menjadi ID utuh
     return `${prefix}_${dateCode}_${nextNo}`;
 }
 
-// --- HAPUS PUBLIKASI + FILE ---
+// --- HAPUS DATA + FOTO ---
 window.hapusItem = async function(id) {
     const item = window.currentData.find(x => x.id === id);
     if (!item) return;
@@ -53,25 +38,19 @@ window.hapusItem = async function(id) {
 
     try {
         Swal.fire({ title: 'Membersihkan...', didOpen: () => Swal.showLoading() });
-        
         const koleksi = document.getElementById("inp-kategori").value || "berita";
         const bucket = koleksi === "berita" ? "berita-images" : "dokumentasi-images";
 
-        // 1. HAPUS FOTO DI SUPABASE
-        if (item.img) {
-            await window.adminDB.deleteFile(bucket, item.img);
-        }
-
-        // 2. HAPUS DATA DI FIREBASE
+        if (item.img) await window.adminDB.deleteFile(bucket, item.img);
         await window.adminDB.delete(koleksi, id);
         
-        Swal.fire('Bersih!', 'Data berhasil dihapus.', 'success');
+        Swal.fire({ title: 'Bersih!', icon: 'success', timer: 1000, showConfirmButton: false });
     } catch (e) {
         Swal.fire('Error', e.message, 'error');
     }
 };
 
-// --- EDIT ---
+// --- EDIT DATA ---
 window.editItem = function(id) {
     const item = window.currentData.find(x => x.id === id);
     if (!item) return;
@@ -90,8 +69,7 @@ window.editItem = function(id) {
 
     const btn = document.getElementById("btn-submit");
     btn.innerText = "UPDATE DATA";
-    btn.classList.remove("bg-slate-900");
-    btn.classList.add("bg-blue-600");
+    btn.classList.replace("bg-slate-900", "bg-blue-600");
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
@@ -101,15 +79,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const dateInput = document.getElementById("inp-date");
     if(dateInput) dateInput.valueAsDate = new Date();
 
+    const kategoriSelect = document.getElementById("inp-kategori");
+    const labelKoleksi = document.getElementById("lbl-koleksi");
+    const inpFile = document.getElementById("inp-file");
+    const form = document.getElementById("form-publikasi");
+
     const checkDB = setInterval(() => {
         if (window.adminDB) {
             clearInterval(checkDB);
             loadData();
         }
     }, 500);
-
-    const kategoriSelect = document.getElementById("inp-kategori");
-    const labelKoleksi = document.getElementById("lbl-koleksi");
 
     if(kategoriSelect) {
         kategoriSelect.addEventListener("change", () => {
@@ -138,31 +118,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
         data.forEach(item => {
             const imgSrc = item.img || 'https://via.placeholder.com/150';
-            let noUrut = "#New";
-            if (item.id && item.id.includes('_')) noUrut = "#" + item.id.split('_').pop();
+            const noUrut = (item.id && item.id.includes('_')) ? "#" + item.id.split('_').pop() : "#New";
 
             listContainer.innerHTML += `
-                <div class="flex gap-3 p-3 bg-white rounded-xl border border-slate-100 mb-3 relative group hover:shadow-md transition">
+                <div class="flex gap-3 p-3 bg-white rounded-xl border border-slate-100 mb-3 hover:shadow-md transition">
                     <div class="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 shrink-0">
                         <img src="${imgSrc}" class="w-full h-full object-cover">
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex justify-between items-start">
                             <h4 class="font-bold text-slate-800 text-sm line-clamp-2 pr-2">${item.judul}</h4>
-                            <span class="text-[9px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap">${noUrut}</span>
+                            <span class="text-[9px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">${noUrut}</span>
                         </div>
-                        <p class="text-[10px] text-slate-400 mt-1"> ${item.tanggal}</p>
-                        <div class="flex gap-2 mt-3 relative z-10">
-                            <button onclick="window.editItem('${item.id}')" class="cursor-pointer px-3 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold hover:bg-blue-600 hover:text-white transition">EDIT</button>
-                            <button onclick="window.hapusItem('${item.id}')" class="cursor-pointer px-3 py-1 bg-red-50 text-red-600 rounded text-[10px] font-bold hover:bg-red-600 hover:text-white transition">HAPUS</button>
+                        <p class="text-[10px] text-slate-400 mt-1">${item.tanggal}</p>
+                        <div class="flex gap-2 mt-3">
+                            <button onclick="window.editItem('${item.id}')" class="px-3 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold hover:bg-blue-600 hover:text-white transition">EDIT</button>
+                            <button onclick="window.hapusItem('${item.id}')" class="px-3 py-1 bg-red-50 text-red-600 rounded text-[10px] font-bold hover:bg-red-600 hover:text-white transition">HAPUS</button>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
     }
 
-    const inpFile = document.getElementById("inp-file");
     if(inpFile) {
         inpFile.addEventListener("change", function() {
             if(this.files[0]) {
@@ -177,26 +154,36 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    const form = document.getElementById("form-publikasi");
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const btnSubmit = document.getElementById("btn-submit");
         const judul = document.getElementById("inp-judul").value.trim();
+        const tglVal = document.getElementById("inp-date").value;
+        const deskripsi = document.getElementById("inp-desc").value.trim();
         const file = inpFile.files[0];
         const currentID = document.getElementById("data-id").value;
-        
-        if(!judul) return Swal.fire('Gagal', 'Judul wajib diisi!', 'warning');
+        const koleksi = kategoriSelect.value;
+
+        // Nama kategori untuk pesan validasi (Berita / Dokumentasi)
+        const txtKategori = koleksi.charAt(0).toUpperCase() + koleksi.slice(1);
+
+        // --- VALIDASI SATU PER SATU BERDASARKAN KONTEKS ---
+        if (!judul) {
+            return Swal.fire('Judul Kosong', `Harap masukkan judul ${txtKategori} terlebih dahulu!`, 'warning');
+        }
+        if (!tglVal) {
+            return Swal.fire('Tanggal Kosong', `Pilih tanggal publikasi ${txtKategori}!`, 'warning');
+        }
+        if (!deskripsi) {
+            return Swal.fire('Deskripsi Kosong', `Harap isi deskripsi atau konten ${txtKategori}!`, 'warning');
+        }
         
         btnSubmit.innerText = "⏳ MENYIMPAN...";
         btnSubmit.disabled = true;
 
         try {
-            const koleksi = kategoriSelect.value;
-            let docID = currentID;
+            let docID = currentID || generateSequentialID(koleksi, window.currentData);
 
-            if (!docID) docID = generateSequentialID(koleksi, window.currentData);
-
-            const tglVal = document.getElementById("inp-date").value;
             const dateObj = new Date(tglVal);
             const yearStr = dateObj.getFullYear().toString();
             const monthStr = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -205,9 +192,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (file) {
                 const bucket = koleksi === "berita" ? "berita-images" : "dokumentasi-images";
-                // Jika edit & ganti foto, hapus yg lama
-                if (currentID && finalUrl) await window.adminDB.deleteFile(bucket, finalUrl);
-                
+                if (currentID && finalUrl) {
+                    try { await window.adminDB.deleteFile(bucket, finalUrl); } catch(e) {}
+                }
                 const folderPath = `${yearStr}/${monthStr}/${docID}`;
                 finalUrl = await window.adminDB.uploadFile(file, bucket, folderPath);
             }
@@ -216,23 +203,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 kategori: koleksi,
                 judul: judul,
                 tanggal: tglVal,
-                deskripsi: document.getElementById("inp-desc").value,
+                deskripsi: deskripsi,
                 img: finalUrl,
                 tahun: yearStr,
                 bulan: monthStr,
-                tanggal_upload: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
 
             await window.adminDB.saveWithId(koleksi, docID, data);
-            
-            Swal.fire('Sukses', `Data tersimpan.\nID: ${docID}`, 'success');
+            Swal.fire({ title: 'Sukses', text: `Data ${txtKategori} berhasil disimpan.`, icon: 'success', timer: 1500, showConfirmButton: false });
             window.resetForm();
 
         } catch (err) {
             Swal.fire('Error', err.message, 'error');
         } finally {
-            btnSubmit.innerText = "SIMPAN DATA";
+            btnSubmit.innerText = currentID ? "UPDATE DATA" : "SIMPAN DATA";
             btnSubmit.disabled = false;
         }
     });
@@ -241,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
         form.reset();
         document.getElementById("data-id").value = "";
         document.getElementById("inp-img-url").value = "";
-        document.getElementById("inp-date").valueAsDate = new Date();
+        if(dateInput) dateInput.valueAsDate = new Date();
         document.getElementById("preview-container").classList.add("hidden");
         document.getElementById("upload-placeholder").classList.remove("hidden");
         document.getElementById("img-preview").src = "";
