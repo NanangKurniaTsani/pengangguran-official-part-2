@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Admin BTM</title>
+    <link rel="stylesheet" href="./output.css" />
+  </head>
+  <body class="bg-bg font-inter">
+    <nav
+      class="sticky top-0 z-40 w-full bg-nav backdrop-blur-md border-b border-nav/60 shadow-sm"
+    >
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <a
+            href="index.html"
+            class="flex items-center gap-2 text-sm font-medium text-bg/60 hover:text-bg transition-colors group"
+          >
+            <div
+              class="p-1.5 rounded-full bg-bg/60 group-hover:bg-bg transition-colors"
+            >
+              <svg
+                class="w-4 h-4 text-nav"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                ></path>
+              </svg>
+            </div>
+            <span>Dashboard</span>
+          </a>
+
+          <div class="flex items-center gap-3">
+            <span
+              class="text-xs font-bold tracking-wider text-bg/60 uppercase hidden sm:block"
+              >Admin Panel</span
+            >
+            <div class="h-4 w-px bg-accent hidden sm:block"></div>
+            <span class="font-bold text-bg text-lg">Manajemen Layanan</span>
+          </div>
+
+          <button
+            id="logoutBtn"
+            class="items-center gap-2 px-4 py-2 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-300 group hidden"
+          >
+            <span
+              class="font-bold text-sm hidden md:block group-hover:text-red-600"
+              >Logout</span
+            >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="w-6 h-6"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+    <script>
+      const statusLogin = localStorage.getItem("isLoggedIn");
+      if (!statusLogin) {
+        window.location.href = "login.html";
+      }
+
+      const btnLogout = document.getElementById("logoutBtn");
+
+      if (btnLogout) {
+        btnLogout.addEventListener("click", function () {
+          const yakin = confirm("Yakin mau logout, Bro?");
+
+          if (yakin) {
+            localStorage.removeItem("isLoggedIn");
+
+            window.location.href = "login.html";
+          }
+        });
+      }
+    </script>
+
+    <section
+      class="min-h-[calc(100vh-5rem)] w-full flex justify-center items-center"
+    >
+      <h1 class="text-9xl text-center">cooming soon</h1>
+    </section>
+  </body>
+</html>

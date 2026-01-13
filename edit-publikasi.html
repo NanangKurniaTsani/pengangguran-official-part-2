@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manajemen Publikasi</title>
+    <link rel="stylesheet" href="output.css" />
+  </head>
+  <body class="bg-bg">
+    <nav
+      class="sticky top-0 z-40 w-full bg-nav backdrop-blur-md border-b border-nav/60 shadow-sm"
+    >
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <a
+            href="index.html"
+            class="flex items-center gap-2 text-sm font-medium text-bg/60 hover:text-bg transition-colors group"
+          >
+            <div
+              class="p-1.5 rounded-full bg-bg/60 group-hover:bg-bg transition-colors"
+            >
+              <svg
+                class="w-4 h-4 text-nav"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                ></path>
+              </svg>
+            </div>
+            <span>Dashboard</span>
+          </a>
+
+          <div class="flex items-center gap-3">
+            <span
+              class="text-xs font-bold tracking-wider text-bg/60 uppercase hidden sm:block"
+              >Admin Panel</span
+            >
+            <div class="h-4 w-px bg-accent hidden sm:block"></div>
+            <span class="font-bold text-bg text-lg">Manajemen Publikasi</span>
+          </div>
+
+          <button
+            id="logoutBtn"
+            class="hidden items-center gap-2 px-4 py-2 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-300 group"
+          >
+            <span
+              class="font-bold text-sm hidden md:block group-hover:text-red-600"
+              >Logout</span
+            >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="w-6 h-6"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+    <script>
+      const statusLogin = localStorage.getItem("isLoggedIn");
+      if (!statusLogin) {
+        window.location.href = "login.html";
+      }
+
+      const btnLogout = document.getElementById("logoutBtn");
+
+      if (btnLogout) {
+        btnLogout.addEventListener("click", function () {
+          const yakin = confirm("Yakin mau logout, Bro?");
+
+          if (yakin) {
+            localStorage.removeItem("isLoggedIn");
+
+            window.location.href = "login.html";
+          }
+        });
+      }
+    </script>
+
+    <main class="grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+      <div class="mb-8">
+        <h1 class="text-2xl font-extrabold text-slate-900">
+          Publikasi & Dokumentasi
+        </h1>
+        <p class="text-slate-500 text-sm mt-1">
+          Kelola konten berita dan dokumentasi kegiatan.
+        </p>
+      </div>
+
+      <div class="grid lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-6">
+          <div
+            class="bg-white rounded-2xl border border-slate-200 shadow-sm sticky top-24 overflow-hidden"
+          >
+            <div class="border-b border-slate-100 px-6 py-4 bg-slate-50">
+              <h3 class="font-bold text-slate-800 text-sm">Form Editor</h3>
+            </div>
+
+            <form id="form-publikasi" class="p-6 space-y-5">
+              <input type="hidden" id="data-id" />
+
+              <div>
+                <label
+                  class="block text-xs font-bold text-slate-700 uppercase mb-2"
+                  >Kategori</label
+                >
+                <select
+                  id="inp-kategori"
+                  class="w-full px-4 py-3 rounded-lg border border-slate-200 bg-blue-50/50 text-blue-900 font-bold text-sm focus:border-blue-500 outline-none cursor-pointer"
+                >
+                  <option value="berita">📰 Berita / Artikel</option>
+                  <option value="dokumentasi">📷 Dokumentasi Kegiatan</option>
+                </select>
+              </div>
+
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    class="block text-xs font-bold text-slate-700 uppercase mb-2"
+                    >Judul</label
+                  >
+                  <input
+                    type="text"
+                    id="inp-judul"
+                    class="w-full px-4 py-3 rounded-lg border border-slate-200 text-sm font-semibold outline-none focus:border-blue-500"
+                    placeholder="Judul..."
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    class="block text-xs font-bold text-slate-700 uppercase mb-2"
+                    >Tanggal</label
+                  >
+                  <input
+                    type="date"
+                    id="inp-date"
+                    class="w-full px-4 py-3 rounded-lg border border-slate-200 text-sm outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  class="block text-xs font-bold text-slate-700 uppercase mb-2"
+                  >Gambar</label
+                >
+                <div class="relative group h-48">
+                  <div
+                    id="drop-zone"
+                    class="absolute inset-0 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-center hover:bg-blue-50 transition"
+                  >
+                    <input
+                      type="file"
+                      id="inp-file"
+                      accept="image/*"
+                      class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                    />
+                    <input type="hidden" id="inp-img-url" />
+
+                    <div
+                      id="upload-placeholder"
+                      class="flex flex-col items-center"
+                    >
+                      <p class="text-xs font-bold text-slate-600">
+                        Klik untuk upload foto
+                      </p>
+                    </div>
+                    <div
+                      id="preview-container"
+                      class="hidden absolute inset-0 w-full h-full bg-white rounded-xl overflow-hidden z-10 p-1"
+                    >
+                      <img
+                        id="img-preview"
+                        class="w-full h-full object-cover rounded-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  class="block text-xs font-bold text-slate-700 uppercase mb-2"
+                  >Deskripsi</label
+                >
+                <textarea
+                  id="inp-desc"
+                  class="w-full px-4 py-3 rounded-lg border border-slate-200 text-sm outline-none focus:border-blue-500 h-24 resize-none"
+                  placeholder="Tulis keterangan..."
+                ></textarea>
+              </div>
+
+              <div class="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  id="btn-submit"
+                  class="flex-1 bg-slate-900 text-white py-3 rounded-lg font-bold text-sm hover:bg-blue-600 transition shadow-lg"
+                >
+                  SIMPAN DATA
+                </button>
+                <button
+                  type="button"
+                  onclick="resetForm()"
+                  class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50 transition"
+                >
+                  RESET
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="lg:col-span-6">
+          <div
+            class="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[80vh] sticky top-24"
+          >
+            <div
+              class="border-b border-slate-100 p-4 bg-white z-10 flex justify-between items-center"
+            >
+              <h3 class="font-bold text-slate-800 text-sm">
+                Arsip
+                <span id="lbl-koleksi" class="text-blue-600 uppercase"
+                  >BERITA</span
+                >
+              </h3>
+              <div class="flex items-center gap-2">
+                <span
+                  class="w-2 h-2 rounded-full bg-green-500 animate-pulse"
+                ></span>
+                <span class="text-[10px] font-bold text-slate-400">LIVE</span>
+              </div>
+            </div>
+
+            <div
+              id="list-data"
+              class="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar bg-slate-50/50"
+            >
+              <p class="text-center text-gray-400 text-xs py-10">
+                Memuat data...
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="./database/firebase.js"></script>
+    <script type="module" src="./database/supabase.js"></script>
+    <script type="module" src="./edit-publikasi.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --color-nav: #252c37;
+  --color-bg: #f8fafc;
+  --color-primary: #0f172a;
+  --color-accent: #00b3e2;
+
+  --font-poppins: "Poppins", sans-serif;
+  --font-inter: "Inter", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply antialiased bg-slate-50 text-slate-600;
+  }
+  html {
+    scroll-padding-top: 80px;
+  }
+}
+
+@layer components {
+  .form-label {
+    @apply block text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-widest;
+  }
+  .form-input {
+    @apply w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all placeholder:text-slate-300;
+  }
+  .btn-primary {
+    @apply bg-primary text-white py-3.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-md active:scale-95 disabled:opacity-50;
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300;
+  }
+}
+
+body {
+  background: var(--color-bg);
+  font-family: "Inter", "Serif", sans-serif;
+}
