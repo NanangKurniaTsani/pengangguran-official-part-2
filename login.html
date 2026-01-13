@@ -151,15 +151,15 @@
         signInWithEmailAndPassword(auth, email, finalPassword)
           .then((userCredential) => {
             // SUKSES
-            localStorage.setItem("isLoggedIn", "true");
-            localStorage.setItem("userEmail", email);
+            sessionStorage.setItem("isLoggedIn", "true");
+            sessionStorage.setItem("userEmail", email);
 
             btnSubmit.innerHTML = "Berhasil!";
             btnSubmit.classList.remove("bg-slate-900", "hover:bg-slate-800");
             btnSubmit.classList.add("bg-green-600");
 
             setTimeout(() => {
-              window.location.href = "index.html";
+              window.location.href = "index";
             }, 800);
           })
           .catch((error) => {
