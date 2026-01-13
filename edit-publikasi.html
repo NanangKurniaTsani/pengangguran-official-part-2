@@ -71,6 +71,7 @@
         </div>
       </div>
     </nav>
+
     <script>
       const statusLogin = localStorage.getItem("isLoggedIn");
       if (!statusLogin) {
@@ -81,7 +82,7 @@
 
       if (btnLogout) {
         btnLogout.addEventListener("click", function () {
-          const yakin = confirm("Yakin mau logout, Bro?");
+          const yakin = confirm("Yakin mau logout, Filkomers?");
 
           if (yakin) {
             localStorage.removeItem("isLoggedIn");
