@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard - Admin BTM</title>
     <link rel="stylesheet" href="./output.css" />
+    <link rel="icon" type="image/png" href="./images/logo-btm.png" />
   </head>
   <body class="bg-bg font-inter">
     <nav
@@ -74,7 +75,7 @@
     <script>
       const statusLogin = localStorage.getItem("isLoggedIn");
       if (!statusLogin) {
-        window.location.href = "login.html";
+        window.location.href = "login";
       }
 
       const btnLogout = document.getElementById("logoutBtn");
@@ -85,8 +86,7 @@
 
           if (yakin) {
             localStorage.removeItem("isLoggedIn");
-
-            window.location.href = "login.html";
+            window.location.href = "login";
           }
         });
       }

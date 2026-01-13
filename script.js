@@ -47,3 +47,8 @@ const currentYear = new Date().getFullYear();
 if (yearElement) {
   yearElement.innerText = currentYear("&copy;");
 }
+
+// CLEAN .HTML
+if (!statusLogin) {
+  window.location.href = "login";
+}
