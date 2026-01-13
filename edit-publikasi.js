@@ -1,18 +1,37 @@
 import Swal from 'https://cdn.jsdelivr.net/npm/sweetalert2@11/+esm';
 
-// --- ID AUTO NUMBER ---
 function generateSequentialID(prefix, allData) {
+    // 1. Ambil tanggal hari ini untuk bagian tengah ID
     const now = new Date();
-    const dateCode = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-    const prefixHariIni = `${prefix}_${dateCode}`;
-    
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const dateCode = `${year}${month}${day}`;
+
     let maxNo = 0;
-    allData.filter(i => i.id && i.id.startsWith(prefixHariIni)).forEach(item => {
-        const no = parseInt(item.id.split('_').pop());
-        if (!isNaN(no) && no > maxNo) maxNo = no;
+
+    // 2. Filter data yang sesuai dengan prefix dan tanggal hari ini
+    const relevantData = allData.filter(item => 
+        item.id && item.id.startsWith(`${prefix}_`)
+    );
+
+    // 3. Cari nomor urut (4 digit terakhir) yang paling besar
+    relevantData.forEach(item => {
+        const parts = item.id.split('_');
+        // Mengambil bagian terakhir dari ID (asumsi format selalu berakhir di _XXXX)
+        const lastPart = parts[parts.length - 1];
+        const no = parseInt(lastPart);
+        
+        if (!isNaN(no) && no > maxNo) {
+            maxNo = no;
+        }
     });
 
-    return `${prefixHariIni}_${String(maxNo + 1).padStart(4, '0')}`;
+    // 4. Tambahkan 1 ke nomor terbesar yang ditemukan
+    const nextNo = String(maxNo + 1).padStart(4, '0');
+
+    // 5. Gabungkan menjadi ID utuh
+    return `${prefix}_${dateCode}_${nextNo}`;
 }
 
 // --- HAPUS PUBLIKASI + FILE ---
@@ -132,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <h4 class="font-bold text-slate-800 text-sm line-clamp-2 pr-2">${item.judul}</h4>
                             <span class="text-[9px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap">${noUrut}</span>
                         </div>
-                        <p class="text-[10px] text-slate-400 mt-1">📅 ${item.tanggal}</p>
+                        <p class="text-[10px] text-slate-400 mt-1"> ${item.tanggal}</p>
                         <div class="flex gap-2 mt-3 relative z-10">
                             <button onclick="window.editItem('${item.id}')" class="cursor-pointer px-3 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold hover:bg-blue-600 hover:text-white transition">EDIT</button>
                             <button onclick="window.hapusItem('${item.id}')" class="cursor-pointer px-3 py-1 bg-red-50 text-red-600 rounded text-[10px] font-bold hover:bg-red-600 hover:text-white transition">HAPUS</button>
