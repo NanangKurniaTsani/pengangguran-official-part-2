@@ -37,7 +37,7 @@ window.hapusItem = async function(id) {
     if (!result.isConfirmed) return;
 
     try {
-        Swal.fire({ title: 'Membersihkan...', didOpen: () => Swal.showLoading() });
+        Swal.fire({ title: 'Membersihkan...', didOpen: () => Swal.showLoading(), allowOutsideClick: false });
         const koleksi = document.getElementById("inp-kategori").value || "berita";
         const bucket = koleksi === "berita" ? "berita-images" : "dokumentasi-images";
 
@@ -60,6 +60,17 @@ window.editItem = function(id) {
     document.getElementById("inp-date").value = item.tanggal;
     document.getElementById("inp-desc").value = item.deskripsi || "";
     document.getElementById("inp-img-url").value = item.img || "";
+    
+    // GDrive field
+    const inpGDrive = document.getElementById("inp-gdrive");
+    const containerGDrive = document.getElementById("container-gdrive");
+    if(inpGDrive) inpGDrive.value = item.gdrive || "";
+    
+    if(item.kategori === "dokumentasi" && containerGDrive) {
+        containerGDrive.classList.remove("hidden");
+    } else if(containerGDrive) {
+        containerGDrive.classList.add("hidden");
+    }
 
     if (item.img) {
         document.getElementById("img-preview").src = item.img;
@@ -83,6 +94,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const labelKoleksi = document.getElementById("lbl-koleksi");
     const inpFile = document.getElementById("inp-file");
     const form = document.getElementById("form-publikasi");
+    const containerGDrive = document.getElementById("container-gdrive");
+    const inpGDrive = document.getElementById("inp-gdrive");
 
     const checkDB = setInterval(() => {
         if (window.adminDB) {
@@ -94,6 +107,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if(kategoriSelect) {
         kategoriSelect.addEventListener("change", () => {
             if(labelKoleksi) labelKoleksi.innerText = kategoriSelect.value.toUpperCase();
+            if(kategoriSelect.value === "dokumentasi") {
+                containerGDrive.classList.remove("hidden");
+            } else {
+                containerGDrive.classList.add("hidden");
+                if(inpGDrive) inpGDrive.value = ""; 
+            }
             loadData(); 
         });
     }
@@ -119,6 +138,9 @@ document.addEventListener("DOMContentLoaded", () => {
         data.forEach(item => {
             const imgSrc = item.img || 'https://via.placeholder.com/150';
             const noUrut = (item.id && item.id.includes('_')) ? "#" + item.id.split('_').pop() : "#New";
+            const gdriveBtn = item.gdrive ? 
+                `<a href="${item.gdrive}" target="_blank" class="px-3 py-1 bg-green-50 text-green-600 rounded text-[10px] font-bold hover:bg-green-600 hover:text-white transition">G-DRIVE</a>` 
+                : '';
 
             listContainer.innerHTML += `
                 <div class="flex gap-3 p-3 bg-white rounded-xl border border-slate-100 mb-3 hover:shadow-md transition">
@@ -132,6 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                         <p class="text-[10px] text-slate-400 mt-1">${item.tanggal}</p>
                         <div class="flex gap-2 mt-3">
+                            ${gdriveBtn}
                             <button onclick="window.editItem('${item.id}')" class="px-3 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold hover:bg-blue-600 hover:text-white transition">EDIT</button>
                             <button onclick="window.hapusItem('${item.id}')" class="px-3 py-1 bg-red-50 text-red-600 rounded text-[10px] font-bold hover:bg-red-600 hover:text-white transition">HAPUS</button>
                         </div>
@@ -143,6 +166,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if(inpFile) {
         inpFile.addEventListener("change", function() {
             if(this.files[0]) {
+                if (this.files[0].size > 2 * 1024 * 1024) {
+                    Swal.fire('File Terlalu Besar', 'Maksimal ukuran foto adalah 2MB', 'warning');
+                    this.value = "";
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     document.getElementById("img-preview").src = e.target.result;
@@ -160,36 +188,36 @@ document.addEventListener("DOMContentLoaded", () => {
         const judul = document.getElementById("inp-judul").value.trim();
         const tglVal = document.getElementById("inp-date").value;
         const deskripsi = document.getElementById("inp-desc").value.trim();
+        const gdrive = document.getElementById("inp-gdrive").value.trim();
         const file = inpFile.files[0];
         const currentID = document.getElementById("data-id").value;
         const koleksi = kategoriSelect.value;
 
-        // Nama kategori untuk pesan validasi (Berita / Dokumentasi)
-        const txtKategori = koleksi.charAt(0).toUpperCase() + koleksi.slice(1);
-
-        // --- VALIDASI SATU PER SATU BERDASARKAN KONTEKS ---
-        if (!judul) {
-            return Swal.fire('Judul Kosong', `Harap masukkan judul ${txtKategori} terlebih dahulu!`, 'warning');
-        }
-        if (!tglVal) {
-            return Swal.fire('Tanggal Kosong', `Pilih tanggal publikasi ${txtKategori}!`, 'warning');
-        }
-        if (!deskripsi) {
-            return Swal.fire('Deskripsi Kosong', `Harap isi deskripsi atau konten ${txtKategori}!`, 'warning');
-        }
+        // --- VALIDASI KEAMANAN & KEKOSONGAN (SATU PER SATU) ---
+        if (!judul) return Swal.fire('Input Kosong', 'Judul tidak boleh kosong!', 'warning');
+        if (!tglVal) return Swal.fire('Input Kosong', 'Tanggal harus dipilih!', 'warning');
+        if (!deskripsi) return Swal.fire('Input Kosong', 'Deskripsi konten harus diisi!', 'warning');
         
+        // Validasi Link GDrive (Jika kategori dokumentasi)
+        if (koleksi === "dokumentasi" && gdrive) {
+            const gdrivePattern = /^(https?:\/\/)?(www\.)?(drive\.google\.com|goo\.gl)\/.+$/;
+            if (!gdrivePattern.test(gdrive)) {
+                return Swal.fire('Link Tidak Valid', 'Mohon masukkan link Google Drive yang benar!', 'error');
+            }
+        }
+
         btnSubmit.innerText = "⏳ MENYIMPAN...";
         btnSubmit.disabled = true;
 
         try {
             let docID = currentID || generateSequentialID(koleksi, window.currentData);
-
             const dateObj = new Date(tglVal);
             const yearStr = dateObj.getFullYear().toString();
             const monthStr = String(dateObj.getMonth() + 1).padStart(2, '0');
             
             let finalUrl = document.getElementById("inp-img-url").value;
 
+            // Proses File (Opsional: Jika ada file baru diunggah)
             if (file) {
                 const bucket = koleksi === "berita" ? "berita-images" : "dokumentasi-images";
                 if (currentID && finalUrl) {
@@ -204,14 +232,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 judul: judul,
                 tanggal: tglVal,
                 deskripsi: deskripsi,
-                img: finalUrl,
+                gdrive: gdrive || "", 
+                img: finalUrl || "",
                 tahun: yearStr,
                 bulan: monthStr,
                 updatedAt: new Date().toISOString()
             };
 
             await window.adminDB.saveWithId(koleksi, docID, data);
-            Swal.fire({ title: 'Sukses', text: `Data ${txtKategori} berhasil disimpan.`, icon: 'success', timer: 1500, showConfirmButton: false });
+            Swal.fire({ title: 'Sukses', text: 'Data berhasil disimpan di database.', icon: 'success', timer: 1500, showConfirmButton: false });
             window.resetForm();
 
         } catch (err) {
@@ -226,6 +255,8 @@ document.addEventListener("DOMContentLoaded", () => {
         form.reset();
         document.getElementById("data-id").value = "";
         document.getElementById("inp-img-url").value = "";
+        if(inpGDrive) inpGDrive.value = "";
+        if(containerGDrive) containerGDrive.classList.add("hidden");
         if(dateInput) dateInput.valueAsDate = new Date();
         document.getElementById("preview-container").classList.add("hidden");
         document.getElementById("upload-placeholder").classList.remove("hidden");
