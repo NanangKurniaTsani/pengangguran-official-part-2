@@ -279,3 +279,21 @@ document.addEventListener("DOMContentLoaded", () => {
         finally { btn.disabled = false; btn.innerText = "Simpan Data"; }
     });
 });
+const statusLogin = sessionStorage.getItem("isLoggedIn");
+if (!statusLogin) {
+    window.location.href = "login";
+}
+
+const btnLogout = document.getElementById("logoutBtn");
+
+if (btnLogout) {
+    btnLogout.addEventListener("click", function () {
+        const yakin = confirm("Yakin mau logout, Filkomers?");
+
+        if (yakin) {
+            sessionStorage.removeItem("isLoggedIn");
+            sessionStorage.removeItem("userEmail");
+            window.location.href = "login";
+        }
+    });
+}

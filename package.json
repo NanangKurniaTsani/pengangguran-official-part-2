@@ -1,25 +1,21 @@
 {
-  "dependencies": {
-    "@tailwindcss/cli": "^4.1.18",
-    "firebase": "^12.7.0",
-    "lucide-static": "^0.562.0",
-    "sweetalert2": "^11.26.17",
-    "tailwindcss": "^4.1.18"
-  },
   "name": "admin-btm-filkom",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "start": "vite",
-    "dev": "tailwindcss -i style.css -o output.css --watch",
-    "build": "npx tailwindcss -i style.css -o output.css --minify"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "Admin Panel BTM FILKOM UNU CIREBON",
   "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "firebase": "^10.7.1",
+    "lucide-static": "^0.303.0",
+    "sweetalert2": "^11.10.1"
+  },
   "devDependencies": {
-    "vite": "^7.3.1"
+    "@tailwindcss/vite": "^4.1.18",
+    "tailwindcss": "^4.0.0",
+    "vite": "^5.0.10"
   }
 }

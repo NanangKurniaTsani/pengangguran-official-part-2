@@ -20,7 +20,7 @@ function generateSequentialID(prefix, allData) {
 }
 
 // --- HAPUS DATA + FOTO ---
-window.hapusItem = async function(id) {
+window.hapusItem = async function (id) {
     const item = window.currentData.find(x => x.id === id);
     if (!item) return;
 
@@ -43,7 +43,7 @@ window.hapusItem = async function(id) {
 
         if (item.img) await window.adminDB.deleteFile(bucket, item.img);
         await window.adminDB.delete(koleksi, id);
-        
+
         Swal.fire({ title: 'Bersih!', icon: 'success', timer: 1000, showConfirmButton: false });
     } catch (e) {
         Swal.fire('Error', e.message, 'error');
@@ -51,7 +51,7 @@ window.hapusItem = async function(id) {
 };
 
 // --- EDIT DATA ---
-window.editItem = function(id) {
+window.editItem = function (id) {
     const item = window.currentData.find(x => x.id === id);
     if (!item) return;
 
@@ -60,15 +60,15 @@ window.editItem = function(id) {
     document.getElementById("inp-date").value = item.tanggal;
     document.getElementById("inp-desc").value = item.deskripsi || "";
     document.getElementById("inp-img-url").value = item.img || "";
-    
+
     // GDrive field
     const inpGDrive = document.getElementById("inp-gdrive");
     const containerGDrive = document.getElementById("container-gdrive");
-    if(inpGDrive) inpGDrive.value = item.gdrive || "";
-    
-    if(item.kategori === "dokumentasi" && containerGDrive) {
+    if (inpGDrive) inpGDrive.value = item.gdrive || "";
+
+    if (item.kategori === "dokumentasi" && containerGDrive) {
         containerGDrive.classList.remove("hidden");
-    } else if(containerGDrive) {
+    } else if (containerGDrive) {
         containerGDrive.classList.add("hidden");
     }
 
@@ -88,7 +88,7 @@ window.editItem = function(id) {
 document.addEventListener("DOMContentLoaded", () => {
     window.currentData = [];
     const dateInput = document.getElementById("inp-date");
-    if(dateInput) dateInput.valueAsDate = new Date();
+    if (dateInput) dateInput.valueAsDate = new Date();
 
     const kategoriSelect = document.getElementById("inp-kategori");
     const labelKoleksi = document.getElementById("lbl-koleksi");
@@ -104,16 +104,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }, 500);
 
-    if(kategoriSelect) {
+    if (kategoriSelect) {
         kategoriSelect.addEventListener("change", () => {
-            if(labelKoleksi) labelKoleksi.innerText = kategoriSelect.value.toUpperCase();
-            if(kategoriSelect.value === "dokumentasi") {
+            if (labelKoleksi) labelKoleksi.innerText = kategoriSelect.value.toUpperCase();
+            if (kategoriSelect.value === "dokumentasi") {
                 containerGDrive.classList.remove("hidden");
             } else {
                 containerGDrive.classList.add("hidden");
-                if(inpGDrive) inpGDrive.value = ""; 
+                if (inpGDrive) inpGDrive.value = "";
             }
-            loadData(); 
+            loadData();
         });
     }
 
@@ -138,8 +138,8 @@ document.addEventListener("DOMContentLoaded", () => {
         data.forEach(item => {
             const imgSrc = item.img || 'https://via.placeholder.com/150';
             const noUrut = (item.id && item.id.includes('_')) ? "#" + item.id.split('_').pop() : "#New";
-            const gdriveBtn = item.gdrive ? 
-                `<a href="${item.gdrive}" target="_blank" class="px-3 py-1 bg-green-50 text-green-600 rounded text-[10px] font-bold hover:bg-green-600 hover:text-white transition">G-DRIVE</a>` 
+            const gdriveBtn = item.gdrive ?
+                `<a href="${item.gdrive}" target="_blank" class="px-3 py-1 bg-green-50 text-green-600 rounded text-[10px] font-bold hover:bg-green-600 hover:text-white transition">G-DRIVE</a>`
                 : '';
 
             listContainer.innerHTML += `
@@ -163,9 +163,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    if(inpFile) {
-        inpFile.addEventListener("change", function() {
-            if(this.files[0]) {
+    if (inpFile) {
+        inpFile.addEventListener("change", function () {
+            if (this.files[0]) {
                 if (this.files[0].size > 2 * 1024 * 1024) {
                     Swal.fire('File Terlalu Besar', 'Maksimal ukuran foto adalah 2MB', 'warning');
                     this.value = "";
@@ -197,7 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!judul) return Swal.fire('Input Kosong', 'Judul tidak boleh kosong!', 'warning');
         if (!tglVal) return Swal.fire('Input Kosong', 'Tanggal harus dipilih!', 'warning');
         if (!deskripsi) return Swal.fire('Input Kosong', 'Deskripsi konten harus diisi!', 'warning');
-        
+
         // Validasi Link GDrive (Jika kategori dokumentasi)
         if (koleksi === "dokumentasi" && gdrive) {
             const gdrivePattern = /^(https?:\/\/)?(www\.)?(drive\.google\.com|goo\.gl)\/.+$/;
@@ -214,14 +214,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const dateObj = new Date(tglVal);
             const yearStr = dateObj.getFullYear().toString();
             const monthStr = String(dateObj.getMonth() + 1).padStart(2, '0');
-            
+
             let finalUrl = document.getElementById("inp-img-url").value;
 
             // Proses File (Opsional: Jika ada file baru diunggah)
             if (file) {
                 const bucket = koleksi === "berita" ? "berita-images" : "dokumentasi-images";
                 if (currentID && finalUrl) {
-                    try { await window.adminDB.deleteFile(bucket, finalUrl); } catch(e) {}
+                    try { await window.adminDB.deleteFile(bucket, finalUrl); } catch (e) { }
                 }
                 const folderPath = `${yearStr}/${monthStr}/${docID}`;
                 finalUrl = await window.adminDB.uploadFile(file, bucket, folderPath);
@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 judul: judul,
                 tanggal: tglVal,
                 deskripsi: deskripsi,
-                gdrive: gdrive || "", 
+                gdrive: gdrive || "",
                 img: finalUrl || "",
                 tahun: yearStr,
                 bulan: monthStr,
@@ -255,9 +255,9 @@ document.addEventListener("DOMContentLoaded", () => {
         form.reset();
         document.getElementById("data-id").value = "";
         document.getElementById("inp-img-url").value = "";
-        if(inpGDrive) inpGDrive.value = "";
-        if(containerGDrive) containerGDrive.classList.add("hidden");
-        if(dateInput) dateInput.valueAsDate = new Date();
+        if (inpGDrive) inpGDrive.value = "";
+        if (containerGDrive) containerGDrive.classList.add("hidden");
+        if (dateInput) dateInput.valueAsDate = new Date();
         document.getElementById("preview-container").classList.add("hidden");
         document.getElementById("upload-placeholder").classList.remove("hidden");
         document.getElementById("img-preview").src = "";
@@ -267,3 +267,21 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.classList.remove("bg-blue-600");
     };
 });
+const statusLogin = sessionStorage.getItem("isLoggedIn");
+if (!statusLogin) {
+    window.location.href = "login";
+}
+
+const btnLogout = document.getElementById("logoutBtn");
+
+if (btnLogout) {
+    btnLogout.addEventListener("click", function () {
+        const yakin = confirm("Yakin mau logout, Filkomers?");
+
+        if (yakin) {
+            sessionStorage.removeItem("isLoggedIn");
+            sessionStorage.removeItem("userEmail");
+            window.location.href = "login";
+        }
+    });
+}
