@@ -1,4 +1,5 @@
-import Swal from 'https://cdn.jsdelivr.net/npm/sweetalert2@11/+esm';
+import Swal from 'sweetalert2';
+import { onAuthStateChanged } from "firebase/auth";
 
 const DEFAULT_AVATAR = "https://ui-avatars.com/api/?name=User&background=f1f5f9&color=64748b&size=128";
 
@@ -71,7 +72,7 @@ window.resetSearch = function() {
     sugBox.classList.add("hidden");
     listData.classList.remove("searching-mode");
     selectedSugIndex = -1;
-    renderList(window.currentData); // Kembali ke tampilan awal per Departemen
+    renderList(window.currentData); 
 };
 
 window.goToMember = function(id, name) {
@@ -101,10 +102,8 @@ function handleSearch(keyword, e) {
     const clearBtn = document.getElementById("clear-search");
     const kw = keyword.toLowerCase().trim();
 
-    // Munculkan/Sembunyikan tombol X
     kw !== "" ? clearBtn.classList.remove("hidden") : clearBtn.classList.add("hidden");
 
-    // Navigasi Keyboard
     const items = sugBox.querySelectorAll('.sug-item');
     if (e && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter")) {
         if (e.key === "ArrowDown") selectedSugIndex = (selectedSugIndex + 1) % items.length;
@@ -216,21 +215,44 @@ function renderList(data) {
 
 document.addEventListener("DOMContentLoaded", () => {
     window.currentData = [];
+    
+    // --- FIX START: Menunggu Firebase Auth & Database Siap ---
     const checkDB = setInterval(() => {
-        if (window.adminDB) {
+        if (window.adminDB && window.firebaseAuth) {
             clearInterval(checkDB);
-            window.adminDB.listenList("pengurus", (data) => { window.currentData = data; renderList(data); });
-            window.adminDB.listenList("departemen_data", (data) => {
-                const s1 = document.getElementById("inp-dept");
-                const s2 = document.getElementById("inp-info-code");
-                s1.innerHTML = ""; s2.innerHTML = "";
-                data.sort((a,b) => (a.id === 'BPH' ? -1 : 1)).forEach(d => {
-                    s1.innerHTML += `<option value="${d.id}">${d.id}</option>`;
-                    s2.innerHTML += `<option value="${d.id}">${d.id}</option>`;
-                });
+            
+            // Cek Status Login Firebase
+            onAuthStateChanged(window.firebaseAuth, (user) => {
+                if (user) {
+                    console.log("✅ Auth OK. Mengambil Data...");
+                    
+                    // Ambil Data Pengurus
+                    window.adminDB.listenList("pengurus", (data) => { 
+                        window.currentData = data; 
+                        renderList(data); 
+                    });
+
+                    // Ambil Data Departemen
+                    window.adminDB.listenList("departemen_data", (data) => {
+                        const s1 = document.getElementById("inp-dept");
+                        const s2 = document.getElementById("inp-info-code");
+                        if(s1 && s2) {
+                            s1.innerHTML = ""; s2.innerHTML = "";
+                            data.sort((a,b) => (a.id === 'BPH' ? -1 : 1)).forEach(d => {
+                                s1.innerHTML += `<option value="${d.id}">${d.id}</option>`;
+                                s2.innerHTML += `<option value="${d.id}">${d.id}</option>`;
+                            });
+                        }
+                    });
+                } else {
+                    console.warn("⚠️ User tidak login. Redirecting...");
+                    sessionStorage.removeItem("isLoggedIn"); // Bersihkan session lokal
+                    window.location.href = "login";
+                }
             });
         }
     }, 500);
+    // --- FIX END ---
 
     const searchBox = document.getElementById("search-box");
     searchBox.addEventListener("keydown", (e) => {

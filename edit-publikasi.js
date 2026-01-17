@@ -1,4 +1,5 @@
-import Swal from 'https://cdn.jsdelivr.net/npm/sweetalert2@11/+esm';
+import Swal from 'sweetalert2';
+import { onAuthStateChanged } from "firebase/auth";
 
 // --- LOGIKA GENERATE ID OTOMATIS ---
 function generateSequentialID(prefix, allData) {
@@ -97,12 +98,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const containerGDrive = document.getElementById("container-gdrive");
     const inpGDrive = document.getElementById("inp-gdrive");
 
+    // --- FIX START: Menunggu Firebase Auth ---
     const checkDB = setInterval(() => {
-        if (window.adminDB) {
+        if (window.adminDB && window.firebaseAuth) {
             clearInterval(checkDB);
-            loadData();
+            
+            onAuthStateChanged(window.firebaseAuth, (user) => {
+                if (user) {
+                    console.log("✅ Auth OK. Mengambil Data Publikasi...");
+                    loadData(); // Load data hanya jika sudah login
+                } else {
+                    console.warn("⚠️ User tidak login. Redirecting...");
+                    sessionStorage.removeItem("isLoggedIn");
+                    window.location.href = "login";
+                }
+            });
         }
     }, 500);
+    // --- FIX END ---
 
     if (kategoriSelect) {
         kategoriSelect.addEventListener("change", () => {
@@ -193,12 +206,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const currentID = document.getElementById("data-id").value;
         const koleksi = kategoriSelect.value;
 
-        // --- VALIDASI KEAMANAN & KEKOSONGAN (SATU PER SATU) ---
         if (!judul) return Swal.fire('Input Kosong', 'Judul tidak boleh kosong!', 'warning');
         if (!tglVal) return Swal.fire('Input Kosong', 'Tanggal harus dipilih!', 'warning');
         if (!deskripsi) return Swal.fire('Input Kosong', 'Deskripsi konten harus diisi!', 'warning');
 
-        // Validasi Link GDrive (Jika kategori dokumentasi)
         if (koleksi === "dokumentasi" && gdrive) {
             const gdrivePattern = /^(https?:\/\/)?(www\.)?(drive\.google\.com|goo\.gl)\/.+$/;
             if (!gdrivePattern.test(gdrive)) {
@@ -217,7 +228,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             let finalUrl = document.getElementById("inp-img-url").value;
 
-            // Proses File (Opsional: Jika ada file baru diunggah)
             if (file) {
                 const bucket = koleksi === "berita" ? "berita-images" : "dokumentasi-images";
                 if (currentID && finalUrl) {
