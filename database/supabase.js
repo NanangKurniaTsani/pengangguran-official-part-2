@@ -1,7 +1,12 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+
+// Debugging: Cek di Console browser
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.error("rz Supabase Config Error: URL atau Key tidak terbaca dari .env!");
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
