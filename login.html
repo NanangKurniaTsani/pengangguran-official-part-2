@@ -96,23 +96,19 @@
       </div>
     </div>
 
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+   <script type="module">
+      import { initializeApp } from "firebase/app";
       import {
         getAuth,
         signInWithEmailAndPassword,
-      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+      } from "firebase/auth";
 
+      // Mengambil variable dari .env
       const firebaseConfig = {
-        apiKey: "AIzaSyC-icrsoC6U2yYMLD4Ac1EpApJNtXdFW6I",
-        authDomain: "btmfilkomunucirebon-acd50.firebaseapp.com",
-        databaseURL:
-          "https://btmfilkomunucirebon-acd50-default-rtdb.firebaseio.com",
-        projectId: "btmfilkomunucirebon-acd50",
-        storageBucket: "btmfilkomunucirebon-acd50.firebasestorage.app",
-        messagingSenderId: "711860527628",
-        appId: "1:711860527628:web:b62fc4bcf1c77672e54429",
-        measurementId: "G-TE651RGC29",
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        appId: import.meta.env.VITE_FIREBASE_APP_ID,
       };
 
       const app = initializeApp(firebaseConfig);

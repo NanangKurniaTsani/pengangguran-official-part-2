@@ -1,4 +1,4 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp } from "firebase/app";
 import {
   getFirestore,
   collection,
@@ -7,7 +7,7 @@ import {
   deleteDoc,
   onSnapshot,
   getDoc,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "firebase/firestore";
 
 // Mengambil config dari Environment Variables
 const firebaseConfig = {
@@ -16,6 +16,11 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
+
+// Debugging: Cek di Console browser saat deploy nanti
+if (!firebaseConfig.apiKey) {
+  console.error("🔥 Firebase Config Error: API Key tidak terbaca dari .env!");
+}
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
