@@ -1,7 +1,11 @@
 import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite"; // Tambahkan ini
 
 export default defineConfig({
+  plugins: [
+    tailwindcss(), // Tambahkan ini agar Vite mengurus Tailwind kamu
+  ],
   build: {
-    sourcemap: false, // Ini biar orang gak bisa intip kodingan asli kamu lewat Inspect Element
+    sourcemap: false, // Tetap jaga privasi kode kamu
   },
 });
