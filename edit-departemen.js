@@ -22,49 +22,30 @@ function getRank(jabatan) {
     return index === -1 ? 99 : index;
 }
 
+
 // ==========================================
-// 1. TAB SWITCHER
+// 2. SEARCH ENGINE (LOGIC & UI)
 // ==========================================
-window.switchTab = function(mode) {
-    window.activeTab = mode;
+const searchBox = document.getElementById("search-box");
+const overlay = document.getElementById("search-overlay");
+
+if(searchBox) {
+    searchBox.addEventListener("focus", () => { if(overlay) overlay.classList.remove("hidden"); });
     
-    const tabP = document.getElementById('tab-pengurus');
-    const tabD = document.getElementById('tab-dept');
-    const tabSelect = document.getElementById('tab-select-mobile');
-    const secP = document.getElementById('section-pengurus');
-    const secD = document.getElementById('section-dept');
-    const title = document.getElementById('list-title');
+    document.addEventListener("click", (e) => {
+        const wrapper = searchBox.parentElement;
+        if (!wrapper.contains(e.target) && !document.getElementById("search-suggestions").contains(e.target)) {
+            if(overlay) overlay.classList.add("hidden");
+            document.getElementById("search-suggestions").classList.add("hidden");
+        }
+    });
+}
 
-    if(tabSelect) tabSelect.value = mode;
-
-    if (mode === 'pengurus') {
-        if(tabP) tabP.className = "px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-slate-900 text-white shadow-md";
-        if(tabD) tabD.className = "px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all text-slate-500 hover:bg-slate-50";
-        secP.classList.remove('hidden');
-        secD.classList.add('hidden');
-        title.innerText = "Daftar Pengurus";
-    } else {
-        if(tabD) tabD.className = "px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-amber-500 text-white shadow-md";
-        if(tabP) tabP.className = "px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all text-slate-500 hover:bg-slate-50";
-        secD.classList.remove('hidden');
-        secP.classList.add('hidden');
-        title.innerText = "Daftar Departemen";
-    }
-    
-    renderListBasedOnTab(document.getElementById("search-box").value);
-};
-
-// ==========================================
-// 2. SEARCH ENGINE
-// ==========================================
 window.resetSearch = function() {
-    const searchBox = document.getElementById("search-box");
-    const sugBox = document.getElementById("search-suggestions");
-    const clearBtn = document.getElementById("clear-search");
-    
     searchBox.value = "";
-    if(clearBtn) clearBtn.classList.add("hidden");
-    if(sugBox) sugBox.classList.add("hidden");
+    document.getElementById("clear-search").classList.add("hidden");
+    document.getElementById("search-suggestions").classList.add("hidden");
+    if(overlay) overlay.classList.add("hidden");
     selectedSugIndex = -1;
     renderListBasedOnTab();
 };
@@ -76,26 +57,50 @@ window.handleSearch = function(keyword, e) {
 
     if(clearBtn) kw !== "" ? clearBtn.classList.remove("hidden") : clearBtn.classList.add("hidden");
 
+    // Keyboard Nav
     const items = sugBox.querySelectorAll('.sug-item');
     if (e && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter")) {
-        if (e.key === "ArrowDown") selectedSugIndex = (selectedSugIndex + 1) % items.length;
-        if (e.key === "ArrowUp") selectedSugIndex = (selectedSugIndex - 1 + items.length) % items.length;
-        if (e.key === "Enter" && selectedSugIndex > -1) { items[selectedSugIndex].click(); return; }
+        if (items.length === 0) return;
+
+        if (e.key === "ArrowDown") {
+            selectedSugIndex++;
+            if (selectedSugIndex >= items.length) selectedSugIndex = 0; 
+        } 
+        else if (e.key === "ArrowUp") {
+            selectedSugIndex--;
+            if (selectedSugIndex < 0) selectedSugIndex = items.length - 1; 
+        } 
+        else if (e.key === "Enter") {
+            if (selectedSugIndex > -1 && items[selectedSugIndex]) {
+                items[selectedSugIndex].click(); 
+                return;
+            }
+        }
+
         items.forEach((el, idx) => {
-            el.classList.toggle('bg-blue-50', idx === selectedSugIndex);
-            if(idx === selectedSugIndex) el.scrollIntoView({ block: 'nearest' });
+            if (idx === selectedSugIndex) {
+                el.classList.add('is-active'); 
+                el.scrollIntoView({ block: 'nearest' });
+            } else {
+                el.classList.remove('is-active');
+            }
         });
-        return;
+        return; 
     }
 
-    if (kw === "") { window.resetSearch(); return; }
+    selectedSugIndex = -1; 
 
-    // --- LOGIC SEARCH (WORD START) ---
-    // Cek apakah ada SALAH SATU kata dalam nama yang berawalan keyword
+    if (kw === "") { 
+        sugBox.classList.add("hidden");
+        renderListBasedOnTab(); 
+        return; 
+    }
+
+    // Generate Suggestions (Smart Word)
     const foundMembers = window.currentData.filter(i => {
         const words = i.nama.toLowerCase().split(" "); 
         return words.some(w => w.startsWith(kw));
-    }).slice(0, 3);
+    }).slice(0, 5);
 
     const foundDepts = window.deptData.filter(d => d.id.toLowerCase().startsWith(kw)).slice(0, 2);
 
@@ -105,9 +110,12 @@ window.handleSearch = function(keyword, e) {
         html += `<div class="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Anggota</div>`;
         foundMembers.forEach(item => {
             html += `
-            <div onclick="window.applySearch('${item.nama.replace(/'/g, "\\'")}', 'name')" class="sug-item p-3 hover:bg-blue-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 transition-all">
-                <img src="${item.foto || DEFAULT_AVATAR}" class="w-8 h-8 rounded-full object-cover border border-slate-200">
-                <div class="min-w-0"><p class="text-xs font-bold text-slate-800 truncate">${item.nama}</p><p class="text-[9px] text-slate-500 uppercase">${item.jabatan}</p></div>
+            <div data-type="member" onclick="window.applySearch('${item.nama.replace(/'/g, "\\'")}', 'name', '${item.id}')" class="sug-item group">
+                <img src="${item.foto || DEFAULT_AVATAR}" class="w-8 h-8 rounded-full object-cover border border-slate-200 group-hover:border-blue-200">
+                <div class="min-w-0">
+                    <p class="text-xs font-bold text-slate-800 truncate transition-colors">${item.nama}</p>
+                    <p class="text-[9px] text-slate-500 uppercase">${item.jabatan}</p>
+                </div>
             </div>`;
         });
     }
@@ -117,15 +125,15 @@ window.handleSearch = function(keyword, e) {
         html += `<div class="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 ${borderTop}">Departemen</div>`;
         foundDepts.forEach(item => {
             html += `
-            <div onclick="window.applySearch('${item.id}', 'dept')" class="sug-item p-3 hover:bg-amber-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 transition-all">
-                <div class="w-8 h-8 rounded bg-amber-100 flex items-center justify-center text-[10px] font-black text-amber-600">${item.id.substring(0,2)}</div>
-                <div class="min-w-0"><p class="text-xs font-bold text-slate-800 truncate">Departemen ${item.id}</p></div>
+            <div data-type="dept" onclick="window.applySearch('${item.id}', 'dept', '${item.id}')" class="sug-item group">
+                <div class="w-8 h-8 rounded bg-amber-100 flex items-center justify-center text-[10px] font-black text-amber-600 group-hover:bg-amber-200">${item.id.substring(0,2)}</div>
+                <div class="min-w-0"><p class="text-xs font-bold text-slate-800 truncate transition-colors">${item.id}</p></div>
             </div>`;
         });
     }
 
     if (foundMembers.length === 0 && foundDepts.length === 0) {
-        html = `<div class="p-4 text-center text-xs font-bold text-slate-300 italic">Data tidak ditemukan</div>`;
+        html = `<div class="p-4 text-center text-xs font-bold text-slate-300 italic bg-white">Data tidak ditemukan</div>`;
     }
 
     sugBox.innerHTML = html;
@@ -134,19 +142,30 @@ window.handleSearch = function(keyword, e) {
     renderListBasedOnTab(kw);
 };
 
-window.applySearch = function(text, type) {
-    const searchBox = document.getElementById("search-box");
+window.applySearch = function(text, type, id) {
     searchBox.value = text;
     document.getElementById("search-suggestions").classList.add("hidden");
+    if(overlay) overlay.classList.add("hidden");
     
     if (type === 'name') window.switchTab('pengurus'); 
     else window.switchTab('pengurus'); 
 
     renderListBasedOnTab(text);
+
+    if(id && type === 'name') {
+        setTimeout(() => {
+            const card = document.getElementById(`card-${id}`);
+            if(card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.classList.add('ring-4', 'ring-blue-200', 'bg-blue-50');
+                setTimeout(() => card.classList.remove('ring-4', 'ring-blue-200', 'bg-blue-50'), 2500);
+            }
+        }, 200);
+    }
 };
 
 // ==========================================
-// 3. RENDER LIST
+// 3. RENDER LIST (CLEAN)
 // ==========================================
 function renderListBasedOnTab(keyword = "") {
     const container = document.getElementById("list-data");
@@ -155,14 +174,11 @@ function renderListBasedOnTab(keyword = "") {
     container.innerHTML = "";
     const kw = keyword.toLowerCase().trim();
 
-    // --- MODE PENGURUS ---
     if (window.activeTab === 'pengurus') {
-        
-        // --- A. JIKA ADA KEYWORD ---
         if (kw !== "") {
-            
-            // 1. CARI NAMA (LOGIC: WORD START)
+            const isMultiWord = kw.includes(" ");
             const matchedByName = window.currentData.filter(i => {
+                if(isMultiWord) return i.nama.toLowerCase().includes(kw);
                 const words = i.nama.toLowerCase().split(" ");
                 return words.some(w => w.startsWith(kw));
             });
@@ -171,19 +187,15 @@ function renderListBasedOnTab(keyword = "") {
                 matchedByName.forEach(m => container.innerHTML += createMemberCard(m));
             }
 
-            // 2. CARI DEPARTEMEN (ID START)
-            const matchedDepts = window.deptData.filter(d => d.id.toLowerCase().startsWith(kw));
+            const matchedDepts = !isMultiWord ? window.deptData.filter(d => d.id.toLowerCase().startsWith(kw)) : [];
             
             if (matchedDepts.length > 0) {
-                if (matchedByName.length > 0) {
-                    container.innerHTML += `<div class="h-4 border-t border-slate-100 my-2"></div>`; 
-                }
+                if (matchedByName.length > 0) container.innerHTML += `<div class="h-4 border-t border-slate-100 my-2"></div>`; 
 
                 matchedDepts.forEach(dept => {
                     const allMembers = window.currentData.filter(m => m.departemen === dept.id);
                     allMembers.sort((a, b) => getRank(a.jabatan) - getRank(b.jabatan));
 
-                    // Header Dept tetap ada (agar user tau ini list siapa)
                     container.innerHTML += `
                     <div class="relative mt-4 mb-2 px-1 flex items-center justify-between">
                         <div class="flex items-center gap-2">
@@ -205,26 +217,20 @@ function renderListBasedOnTab(keyword = "") {
                 container.innerHTML = `<div class="text-center text-xs text-slate-400 py-10 italic">Data tidak ditemukan</div>`;
             }
 
-        } 
-        // --- B. NORMAL VIEW ---
-        else {
+        } else {
             const grouped = {};
             window.currentData.forEach(i => { if (!grouped[i.departemen]) grouped[i.departemen] = []; grouped[i.departemen].push(i); });
-            
             const sortedKeys = Object.keys(grouped).sort((a, b) => {
                 const da = window.deptData.find(d => d.id === a);
                 const db = window.deptData.find(d => d.id === b);
                 return (da?.no_urut || 99) - (db?.no_urut || 99);
             });
 
-            if(sortedKeys.length === 0) {
-                 container.innerHTML = `<div class="text-center text-xs text-slate-400 py-10 italic">Belum ada data pengurus</div>`; return;
-            }
+            if(sortedKeys.length === 0) { container.innerHTML = `<div class="text-center text-xs text-slate-400 py-10 italic">Belum ada data pengurus</div>`; return; }
 
             sortedKeys.forEach(dept => {
                 const members = grouped[dept];
                 members.sort((a, b) => getRank(a.jabatan) - getRank(b.jabatan));
-                
                 container.innerHTML += `
                 <div class="relative mt-5 mb-2 px-1 flex items-center justify-between">
                     <div class="flex items-center gap-2">
@@ -233,24 +239,16 @@ function renderListBasedOnTab(keyword = "") {
                     </div>
                     <span class="text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">${members.length} Orang</span>
                 </div>`;
-                
                 members.forEach(m => container.innerHTML += createMemberCard(m));
             });
         }
-    } 
-    // --- MODE DEPARTEMEN ---
-    else {
+    } else {
         let filtered = window.deptData.filter(d => d.nama_lengkap.toLowerCase().startsWith(kw) || d.id.toLowerCase().startsWith(kw));
         filtered.sort((a, b) => (a.no_urut || 99) - (b.no_urut || 99));
 
-        if(filtered.length === 0) {
-            container.innerHTML = `<div class="text-center text-xs text-slate-400 py-10 italic">Data departemen tidak ditemukan</div>`; return;
-        }
+        if(filtered.length === 0) { container.innerHTML = `<div class="text-center text-xs text-slate-400 py-10 italic">Data departemen tidak ditemukan</div>`; return; }
         
-        container.innerHTML += `
-         <div class="col-span-full mb-4 p-3 bg-amber-50 rounded-xl flex justify-between items-center border border-amber-100 mt-2">
-            <div class="text-amber-700 font-bold text-[10px] uppercase tracking-widest ml-1">Total: ${filtered.length} Departemen</div>
-        </div>`;
+        container.innerHTML += `<div class="col-span-full mb-4 p-3 bg-amber-50 rounded-xl flex justify-between items-center border border-amber-100 mt-2"><div class="text-amber-700 font-bold text-[10px] uppercase tracking-widest ml-1">Total: ${filtered.length} Departemen</div></div>`;
 
         filtered.forEach(d => {
             const count = window.currentData.filter(p => p.departemen === d.id).length;
@@ -294,7 +292,7 @@ function createMemberCard(m) {
 }
 
 // ==========================================
-// 4. CRUD LOGIC
+// 4. CRUD
 // ==========================================
 window.editDept = function(id) {
     const dept = window.deptData.find(d => d.id === id);
@@ -371,7 +369,7 @@ window.resetForm = function() {
 };
 
 // ==========================================
-// 5. INIT
+// 6. INIT
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
     const checkDB = setInterval(() => {
