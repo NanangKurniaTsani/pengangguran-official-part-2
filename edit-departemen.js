@@ -3,115 +3,84 @@ import { onAuthStateChanged } from "firebase/auth";
 
 const DEFAULT_AVATAR = "https://ui-avatars.com/api/?name=User&background=f1f5f9&color=64748b&size=128";
 
-/**
- * ==========================================
- * 1. CRUD ACTIONS
- * ==========================================
- */
-
-window.hapusItem = async function(id) {
-    const result = await Swal.fire({
-        title: 'Hapus Pengurus?',
-        text: "Data akan dihapus permanen!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#1e293b',
-        cancelButtonColor: '#94a3b8',
-        confirmButtonText: 'Ya, Hapus'
-    });
-    if (!result.isConfirmed) return;
-    try {
-        const item = window.currentData.find(x => x.id === id);
-        Swal.fire({ title: 'Membersihkan...', didOpen: () => Swal.showLoading() });
-        if (item.foto && item.foto.includes("supabase")) {
-            await window.adminDB.deleteFile("pengurus-images", item.foto);
-        }
-        await window.adminDB.delete("pengurus", id);
-        Swal.fire({ title: 'Terhapus', icon: 'success', timer: 1000, showConfirmButton: false });
-    } catch (e) { Swal.fire('Error', e.message, 'error'); }
-};
-
-window.editItem = function(id) {
-    const item = window.currentData.find(x => x.id === id);
-    if (!item) return;
-    if (window.innerWidth < 1024 && typeof window.toggleListMobile === 'function') window.toggleListMobile();
-    document.getElementById("data-id").value = item.id;
-    document.getElementById("inp-nama").value = item.nama;
-    document.getElementById("inp-dept").value = item.departemen;
-    document.getElementById("inp-jabatan").value = item.jabatan;
-    document.getElementById("inp-foto-url").value = item.foto || "";
-    document.getElementById("img-preview").src = item.foto || DEFAULT_AVATAR;
-    document.getElementById("btn-submit").innerText = "Simpan Perubahan";
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-window.resetForm = () => {
-    document.getElementById("form-struktur").reset();
-    document.getElementById("data-id").value = "";
-    document.getElementById("inp-foto-url").value = "";
-    document.getElementById("img-preview").src = DEFAULT_AVATAR;
-    document.getElementById("btn-submit").innerText = "Simpan Data";
-};
-
-/**
- * ==========================================
- * 2. SEARCH, RESET & SYNC LOGIC
- * ==========================================
- */
-
+// --- STATE ---
+window.currentData = []; 
+window.deptData = [];    
+window.activeTab = 'pengurus'; 
+window.isEditingDept = false;
 let selectedSugIndex = -1;
 
+const JABATAN_RANK = [
+    "ketua umum", "wakil ketua umum", "sekretaris umum", "bendahara umum", "wakil bendahara umum",
+    "koordinator", "sekretaris", "anggota"
+];
+
+function getRank(jabatan) {
+    if(!jabatan) return 99;
+    const lower = jabatan.toLowerCase();
+    const index = JABATAN_RANK.findIndex(rank => lower.includes(rank));
+    return index === -1 ? 99 : index;
+}
+
+// ==========================================
+// 1. TAB SWITCHER
+// ==========================================
+window.switchTab = function(mode) {
+    window.activeTab = mode;
+    
+    const tabP = document.getElementById('tab-pengurus');
+    const tabD = document.getElementById('tab-dept');
+    const tabSelect = document.getElementById('tab-select-mobile');
+    const secP = document.getElementById('section-pengurus');
+    const secD = document.getElementById('section-dept');
+    const title = document.getElementById('list-title');
+
+    if(tabSelect) tabSelect.value = mode;
+
+    if (mode === 'pengurus') {
+        if(tabP) tabP.className = "px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-slate-900 text-white shadow-md";
+        if(tabD) tabD.className = "px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all text-slate-500 hover:bg-slate-50";
+        secP.classList.remove('hidden');
+        secD.classList.add('hidden');
+        title.innerText = "Daftar Pengurus";
+    } else {
+        if(tabD) tabD.className = "px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-amber-500 text-white shadow-md";
+        if(tabP) tabP.className = "px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all text-slate-500 hover:bg-slate-50";
+        secD.classList.remove('hidden');
+        secP.classList.add('hidden');
+        title.innerText = "Daftar Departemen";
+    }
+    
+    renderListBasedOnTab(document.getElementById("search-box").value);
+};
+
+// ==========================================
+// 2. SEARCH ENGINE
+// ==========================================
 window.resetSearch = function() {
     const searchBox = document.getElementById("search-box");
     const sugBox = document.getElementById("search-suggestions");
-    const listData = document.getElementById("list-data");
     const clearBtn = document.getElementById("clear-search");
-
+    
     searchBox.value = "";
-    clearBtn.classList.add("hidden");
-    sugBox.classList.add("hidden");
-    listData.classList.remove("searching-mode");
+    if(clearBtn) clearBtn.classList.add("hidden");
+    if(sugBox) sugBox.classList.add("hidden");
     selectedSugIndex = -1;
-    renderList(window.currentData); 
+    renderListBasedOnTab();
 };
 
-window.goToMember = function(id, name) {
-    const element = document.getElementById(`card-${id}`);
+window.handleSearch = function(keyword, e) {
     const sugBox = document.getElementById("search-suggestions");
-    const listData = document.getElementById("list-data");
-    const searchBox = document.getElementById("search-box");
-
-    searchBox.value = name; 
-    const filtered = window.currentData.filter(i => i.nama.toLowerCase().includes(name.toLowerCase()) || i.departemen.toLowerCase().includes(name.toLowerCase()));
-    renderSearchResult(filtered, name.toLowerCase());
-
-    listData.classList.remove("searching-mode");
-    sugBox.classList.add("hidden");
-
-    if (element) {
-        document.querySelectorAll('[id^="card-"]').forEach(c => c.classList.remove('ring-4', 'ring-blue-500', 'highlight-card'));
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        element.classList.add('highlight-card', 'ring-4', 'ring-blue-500');
-        setTimeout(() => element.classList.remove('ring-4', 'ring-blue-500'), 3000);
-    }
-};
-
-function handleSearch(keyword, e) {
-    const sugBox = document.getElementById("search-suggestions");
-    const listData = document.getElementById("list-data");
     const clearBtn = document.getElementById("clear-search");
     const kw = keyword.toLowerCase().trim();
 
-    kw !== "" ? clearBtn.classList.remove("hidden") : clearBtn.classList.add("hidden");
+    if(clearBtn) kw !== "" ? clearBtn.classList.remove("hidden") : clearBtn.classList.add("hidden");
 
     const items = sugBox.querySelectorAll('.sug-item');
     if (e && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter")) {
         if (e.key === "ArrowDown") selectedSugIndex = (selectedSugIndex + 1) % items.length;
         if (e.key === "ArrowUp") selectedSugIndex = (selectedSugIndex - 1 + items.length) % items.length;
-        if (e.key === "Enter" && selectedSugIndex > -1) {
-            items[selectedSugIndex].click();
-            return;
-        }
+        if (e.key === "Enter" && selectedSugIndex > -1) { items[selectedSugIndex].click(); return; }
         items.forEach((el, idx) => {
             el.classList.toggle('bg-blue-50', idx === selectedSugIndex);
             if(idx === selectedSugIndex) el.scrollIntoView({ block: 'nearest' });
@@ -119,185 +88,371 @@ function handleSearch(keyword, e) {
         return;
     }
 
-    if (kw === "") {
-        resetSearch();
-        return;
+    if (kw === "") { window.resetSearch(); return; }
+
+    // --- LOGIC SEARCH (WORD START) ---
+    // Cek apakah ada SALAH SATU kata dalam nama yang berawalan keyword
+    const foundMembers = window.currentData.filter(i => {
+        const words = i.nama.toLowerCase().split(" "); 
+        return words.some(w => w.startsWith(kw));
+    }).slice(0, 3);
+
+    const foundDepts = window.deptData.filter(d => d.id.toLowerCase().startsWith(kw)).slice(0, 2);
+
+    let html = "";
+
+    if (foundMembers.length > 0) {
+        html += `<div class="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Anggota</div>`;
+        foundMembers.forEach(item => {
+            html += `
+            <div onclick="window.applySearch('${item.nama.replace(/'/g, "\\'")}', 'name')" class="sug-item p-3 hover:bg-blue-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 transition-all">
+                <img src="${item.foto || DEFAULT_AVATAR}" class="w-8 h-8 rounded-full object-cover border border-slate-200">
+                <div class="min-w-0"><p class="text-xs font-bold text-slate-800 truncate">${item.nama}</p><p class="text-[9px] text-slate-500 uppercase">${item.jabatan}</p></div>
+            </div>`;
+        });
     }
 
-    listData.classList.add("searching-mode");
-    const filtered = window.currentData.filter(i => {
-        const nama = i.nama.toLowerCase();
-        if (kw.length <= 2) return nama.split(" ")[0].startsWith(kw) || i.departemen.toLowerCase().startsWith(kw);
-        return nama.includes(kw) || i.departemen.toLowerCase().includes(kw);
-    });
-
-    if (filtered.length > 0) {
-        const byNama = filtered.filter(item => item.nama.toLowerCase().includes(kw));
-        const byDept = filtered.filter(item => item.departemen.toLowerCase().startsWith(kw) && !item.nama.toLowerCase().includes(kw));
-        
-        let html = "";
-        if (byNama.length > 0) {
-            html += `<div class="sug-header">Anggota</div>`;
-            byNama.forEach(i => {
-                html += `<div onclick="window.goToMember('${i.id}', '${i.nama}')" class="sug-item p-3 hover:bg-blue-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 transition-all">
-                    <img src="${i.foto || DEFAULT_AVATAR}" class="w-8 h-8 rounded-full object-cover border"><div class="min-w-0">
-                    <p class="text-xs font-bold text-slate-800 truncate">${i.nama}</p><p class="text-[9px] text-slate-500 uppercase">${i.jabatan}</p></div></div>`;
-            });
-        }
-        if (byDept.length > 0) {
-            html += `<div class="sug-header">Departemen</div>`;
-            byDept.forEach(i => {
-                html += `<div onclick="window.goToMember('${i.id}', '${i.departemen}')" class="sug-item p-3 hover:bg-amber-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 transition-all">
-                    <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400">${i.departemen[0]}</div>
-                    <div class="min-w-0"><p class="text-xs font-black uppercase text-slate-800">${i.departemen}</p><p class="text-[9px] text-slate-400 truncate">${i.nama}</p></div></div>`;
-            });
-        }
-        sugBox.innerHTML = html;
-        sugBox.classList.remove("hidden");
-    } else {
-        sugBox.innerHTML = `<div class="p-6 text-center text-xs font-bold text-slate-300 italic">Tidak ditemukan</div>`;
-        sugBox.classList.remove("hidden");
+    if (foundDepts.length > 0) {
+        const borderTop = foundMembers.length > 0 ? "border-t border-slate-100" : "";
+        html += `<div class="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 ${borderTop}">Departemen</div>`;
+        foundDepts.forEach(item => {
+            html += `
+            <div onclick="window.applySearch('${item.id}', 'dept')" class="sug-item p-3 hover:bg-amber-50 cursor-pointer flex items-center gap-3 border-b border-slate-50 transition-all">
+                <div class="w-8 h-8 rounded bg-amber-100 flex items-center justify-center text-[10px] font-black text-amber-600">${item.id.substring(0,2)}</div>
+                <div class="min-w-0"><p class="text-xs font-bold text-slate-800 truncate">Departemen ${item.id}</p></div>
+            </div>`;
+        });
     }
 
-    renderSearchResult(filtered, kw);
-}
+    if (foundMembers.length === 0 && foundDepts.length === 0) {
+        html = `<div class="p-4 text-center text-xs font-bold text-slate-300 italic">Data tidak ditemukan</div>`;
+    }
 
-function renderSearchResult(data, keyword) {
+    sugBox.innerHTML = html;
+    sugBox.classList.remove("hidden");
+    
+    renderListBasedOnTab(kw);
+};
+
+window.applySearch = function(text, type) {
+    const searchBox = document.getElementById("search-box");
+    searchBox.value = text;
+    document.getElementById("search-suggestions").classList.add("hidden");
+    
+    if (type === 'name') window.switchTab('pengurus'); 
+    else window.switchTab('pengurus'); 
+
+    renderListBasedOnTab(text);
+};
+
+// ==========================================
+// 3. RENDER LIST
+// ==========================================
+function renderListBasedOnTab(keyword = "") {
     const container = document.getElementById("list-data");
-    container.innerHTML = `
-        <div class="col-span-full mb-6 p-4 bg-blue-50 rounded-2xl flex justify-between items-center fade-in">
-            <div class="text-blue-900 font-black text-xs uppercase tracking-widest ml-2">Hasil: ${keyword}</div>
-            <button onclick="window.resetSearch()" class="px-3 py-1.5 bg-white text-red-500 text-[9px] font-black rounded-lg shadow-sm border border-red-100 hover:bg-red-50">BATALKAN</button>
-        </div>
-    `;
-    data.forEach(item => container.innerHTML += createCardHTML(item));
+    if(!container) return;
+
+    container.innerHTML = "";
+    const kw = keyword.toLowerCase().trim();
+
+    // --- MODE PENGURUS ---
+    if (window.activeTab === 'pengurus') {
+        
+        // --- A. JIKA ADA KEYWORD ---
+        if (kw !== "") {
+            
+            // 1. CARI NAMA (LOGIC: WORD START)
+            const matchedByName = window.currentData.filter(i => {
+                const words = i.nama.toLowerCase().split(" ");
+                return words.some(w => w.startsWith(kw));
+            });
+            
+            if (matchedByName.length > 0) {
+                matchedByName.forEach(m => container.innerHTML += createMemberCard(m));
+            }
+
+            // 2. CARI DEPARTEMEN (ID START)
+            const matchedDepts = window.deptData.filter(d => d.id.toLowerCase().startsWith(kw));
+            
+            if (matchedDepts.length > 0) {
+                if (matchedByName.length > 0) {
+                    container.innerHTML += `<div class="h-4 border-t border-slate-100 my-2"></div>`; 
+                }
+
+                matchedDepts.forEach(dept => {
+                    const allMembers = window.currentData.filter(m => m.departemen === dept.id);
+                    allMembers.sort((a, b) => getRank(a.jabatan) - getRank(b.jabatan));
+
+                    // Header Dept tetap ada (agar user tau ini list siapa)
+                    container.innerHTML += `
+                    <div class="relative mt-4 mb-2 px-1 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-1.5 h-4 bg-slate-800 rounded-full"></span>
+                            <span class="font-black text-xs text-slate-800 uppercase tracking-wider">${dept.id}</span>
+                        </div>
+                        <span class="text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">${allMembers.length} Orang</span>
+                    </div>`;
+
+                    if(allMembers.length === 0) {
+                        container.innerHTML += `<div class="p-3 mb-2 text-[10px] text-slate-400 bg-slate-50 rounded-xl border border-slate-100 italic text-center">Belum ada anggota</div>`;
+                    } else {
+                        allMembers.forEach(m => container.innerHTML += createMemberCard(m));
+                    }
+                });
+            }
+
+            if (matchedByName.length === 0 && matchedDepts.length === 0) {
+                container.innerHTML = `<div class="text-center text-xs text-slate-400 py-10 italic">Data tidak ditemukan</div>`;
+            }
+
+        } 
+        // --- B. NORMAL VIEW ---
+        else {
+            const grouped = {};
+            window.currentData.forEach(i => { if (!grouped[i.departemen]) grouped[i.departemen] = []; grouped[i.departemen].push(i); });
+            
+            const sortedKeys = Object.keys(grouped).sort((a, b) => {
+                const da = window.deptData.find(d => d.id === a);
+                const db = window.deptData.find(d => d.id === b);
+                return (da?.no_urut || 99) - (db?.no_urut || 99);
+            });
+
+            if(sortedKeys.length === 0) {
+                 container.innerHTML = `<div class="text-center text-xs text-slate-400 py-10 italic">Belum ada data pengurus</div>`; return;
+            }
+
+            sortedKeys.forEach(dept => {
+                const members = grouped[dept];
+                members.sort((a, b) => getRank(a.jabatan) - getRank(b.jabatan));
+                
+                container.innerHTML += `
+                <div class="relative mt-5 mb-2 px-1 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-1.5 h-4 bg-slate-800 rounded-full"></span>
+                        <span class="font-black text-xs text-slate-800 uppercase tracking-wider">${dept}</span>
+                    </div>
+                    <span class="text-[9px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">${members.length} Orang</span>
+                </div>`;
+                
+                members.forEach(m => container.innerHTML += createMemberCard(m));
+            });
+        }
+    } 
+    // --- MODE DEPARTEMEN ---
+    else {
+        let filtered = window.deptData.filter(d => d.nama_lengkap.toLowerCase().startsWith(kw) || d.id.toLowerCase().startsWith(kw));
+        filtered.sort((a, b) => (a.no_urut || 99) - (b.no_urut || 99));
+
+        if(filtered.length === 0) {
+            container.innerHTML = `<div class="text-center text-xs text-slate-400 py-10 italic">Data departemen tidak ditemukan</div>`; return;
+        }
+        
+        container.innerHTML += `
+         <div class="col-span-full mb-4 p-3 bg-amber-50 rounded-xl flex justify-between items-center border border-amber-100 mt-2">
+            <div class="text-amber-700 font-bold text-[10px] uppercase tracking-widest ml-1">Total: ${filtered.length} Departemen</div>
+        </div>`;
+
+        filtered.forEach(d => {
+            const count = window.currentData.filter(p => p.departemen === d.id).length;
+            container.innerHTML += `
+            <div id="card-${d.id}" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-md fade-in group mb-3 relative overflow-hidden">
+                <div class="relative z-10">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 font-black text-[10px] border border-amber-200 shadow-sm">${d.no_urut}</div>
+                        <h4 class="font-bold text-slate-800 text-sm uppercase">${d.id}</h4>
+                    </div>
+                    <p class="text-[11px] text-slate-500 font-medium mb-3 line-clamp-1">${d.nama_lengkap}</p>
+                    <div class="flex items-center justify-between border-t border-slate-50 pt-3 mt-1">
+                        <span class="text-[10px] font-bold text-slate-400 flex items-center gap-1">${count} Anggota</span>
+                        <div class="flex gap-2">
+                            <button onclick="window.editDept('${d.id}')" class="px-3 py-1 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white text-[10px] font-black rounded-lg transition-colors uppercase border border-amber-100">Edit</button>
+                            <button onclick="window.deleteDept('${d.id}', ${count})" class="px-3 py-1 bg-white border border-slate-200 hover:bg-red-50 hover:text-red-500 text-slate-400 text-[10px] font-black rounded-lg transition-colors uppercase">Hapus</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
 }
 
-/**
- * ==========================================
- * 3. RENDER DATA & INIT
- * ==========================================
- */
-
-function createCardHTML(m) {
+function createMemberCard(m) {
     const isBPH = m.departemen === "BPH";
     return `
-    <div id="card-${m.id}" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-all duration-300 fade-in">
-        <div class="flex items-center gap-4 mb-4 text-left">
-            <img src="${m.foto || DEFAULT_AVATAR}" class="w-12 h-12 rounded-full object-cover border-2 shadow-sm">
+    <div id="card-${m.id}" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-md fade-in group relative mb-3">
+        <div class="flex items-center gap-4 mb-3 text-left">
+            <img src="${m.foto || DEFAULT_AVATAR}" class="w-11 h-11 rounded-full object-cover border-2 border-slate-50 shadow-sm">
             <div class="flex-1 min-w-0">
-                <h4 class="font-bold text-slate-800 text-sm truncate">${m.nama}</h4>
-                <p class="text-[9px] font-black ${isBPH ? 'text-amber-600 bg-amber-50' : 'text-blue-600 bg-blue-50'} px-2 py-0.5 rounded inline-block uppercase mt-1">${m.departemen} • ${m.jabatan}</p>
+                <h4 class="font-bold text-slate-800 text-sm truncate group-hover:text-blue-600 transition-colors">${m.nama}</h4>
+                <p class="text-[9px] font-black ${isBPH ? 'text-amber-600 bg-amber-50' : 'text-blue-600 bg-blue-50'} px-2 py-0.5 rounded inline-block uppercase mt-1 truncate max-w-full">${m.jabatan}</p>
             </div>
         </div>
         <div class="flex gap-2 border-t border-slate-50 pt-3">
-            <button onclick="window.editItem('${m.id}')" class="flex-1 py-2 rounded-xl text-[10px] font-black bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white transition-all uppercase">Edit</button>
-            <button onclick="window.hapusItem('${m.id}')" class="flex-1 py-2 rounded-xl text-[10px] font-black bg-white border border-slate-100 text-red-400 hover:bg-red-50 hover:text-red-600 transition-all uppercase">Hapus</button>
+            <button onclick="window.editItem('${m.id}')" class="flex-1 py-1.5 rounded-lg text-[10px] font-black bg-slate-50 text-slate-600 hover:bg-slate-800 hover:text-white transition-all uppercase">Edit</button>
+            <button onclick="window.hapusItem('${m.id}')" class="flex-1 py-1.5 rounded-lg text-[10px] font-black bg-white border border-slate-100 text-red-400 hover:bg-red-50 hover:text-red-600 transition-all uppercase">Hapus</button>
         </div>
     </div>`;
 }
 
-function renderList(data) {
-    const container = document.getElementById("list-data");
-    container.innerHTML = "";
-    const urutanDept = ["BPH", "PI", "PJK", "Humas", "PO", "SB"];
-    const grouped = {};
-    data.forEach(i => { if (!grouped[i.departemen]) grouped[i.departemen] = []; grouped[i.departemen].push(i); });
+// ==========================================
+// 4. CRUD LOGIC
+// ==========================================
+window.editDept = function(id) {
+    const dept = window.deptData.find(d => d.id === id);
+    if (!dept) return;
+    window.switchTab('departemen');
+    window.isEditingDept = true;
+    document.getElementById("inp-dept-id").value = dept.id;
+    document.getElementById("inp-dept-id").disabled = true; 
+    document.getElementById("inp-dept-id").classList.add("bg-slate-100");
+    document.getElementById("inp-dept-name").value = dept.nama_lengkap;
+    document.getElementById("inp-dept-desc").value = dept.deskripsi || "";
+    document.getElementById("inp-dept-order").value = dept.no_urut;
+    const btn = document.getElementById("btn-save-dept");
+    btn.innerHTML = "Update Dept";
+    btn.className = "w-full bg-blue-600 text-white py-2 rounded-lg font-bold text-xs uppercase hover:bg-blue-700 transition-all shadow-md shadow-blue-200";
+    if(window.innerWidth < 1024) { window.toggleListMobile(); document.getElementById("form-dept").scrollIntoView({ behavior: 'smooth' }); }
+};
 
-    urutanDept.forEach(dept => {
-        const members = grouped[dept];
-        if (members && members.length > 0) {
-            container.innerHTML += `<div class="col-span-full mt-6 mb-3 flex items-center gap-3 px-1"><span class="px-3 py-1 bg-slate-900 text-white text-[10px] font-black rounded-lg uppercase">${dept}</span><div class="h-px bg-slate-100 flex-1"></div><span class="text-[9px] text-slate-400 font-bold uppercase">${members.length} Orang</span></div>`;
-            members.sort((a,b) => (a.jabatan.toLowerCase().includes("ketua") ? -1 : 1)).forEach(m => container.innerHTML += createCardHTML(m));
-        }
-    });
-}
+window.deleteDept = async function(id, count) {
+    if(count > 0) return Swal.fire('Gagal', `Masih ada ${count} anggota!`, 'error');
+    const res = await Swal.fire({ title: 'Hapus Departemen?', text: `Data ${id} akan hilang permanen!`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#0f172a', cancelButtonColor: '#94a3b8', confirmButtonText: 'Ya, Hapus!' });
+    if(!res.isConfirmed) return;
+    try { await window.adminDB.delete("departemen_data", id); Swal.fire({icon:'success', title:'Terhapus', timer:1000, showConfirmButton:false}); } catch(e){ Swal.fire('Error', e.message, 'error'); }
+};
 
+window.resetDeptForm = function() {
+    window.isEditingDept = false;
+    document.getElementById("form-dept").reset();
+    const inpId = document.getElementById("inp-dept-id");
+    inpId.disabled = false;
+    inpId.classList.remove("bg-slate-100");
+    const btn = document.getElementById("btn-save-dept");
+    btn.innerHTML = "Simpan Dept";
+    btn.className = "flex-1 bg-amber-400 text-white py-2 rounded-lg font-bold text-xs uppercase hover:bg-amber-500 transition-all shadow-md shadow-amber-100";
+    const max = window.deptData.length > 0 ? Math.max(...window.deptData.map(d=>d.no_urut)) : 0;
+    document.getElementById("inp-dept-order").value = max + 1;
+};
+
+window.editItem = function(id) {
+    const item = window.currentData.find(x => x.id === id);
+    if (!item) return;
+    window.switchTab('pengurus');
+    document.getElementById("data-id").value = item.id;
+    document.getElementById("inp-nama").value = item.nama;
+    document.getElementById("inp-jabatan").value = item.jabatan;
+    document.getElementById("inp-foto-url").value = item.foto || "";
+    document.getElementById("img-preview").src = item.foto || DEFAULT_AVATAR;
+    const dd = document.getElementById("inp-dept");
+    if(dd) dd.value = item.departemen;
+    const btn = document.getElementById("btn-submit");
+    btn.innerText = "Simpan Perubahan";
+    btn.classList.replace("bg-slate-900", "bg-blue-600");
+    if(window.innerWidth < 1024) { window.toggleListMobile(); document.getElementById("section-pengurus").scrollIntoView({ behavior: 'smooth' }); }
+};
+
+window.hapusItem = async function(id) {
+    const res = await Swal.fire({ title: 'Hapus Pengurus?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#0f172a', cancelButtonColor: '#94a3b8', confirmButtonText: 'Hapus' });
+    if(!res.isConfirmed) return;
+    try {
+        const item = window.currentData.find(x => x.id === id);
+        if(item.foto && item.foto.includes("supabase")) await window.adminDB.deleteFile("pengurus-images", item.foto);
+        await window.adminDB.delete("pengurus", id);
+        Swal.fire({icon:'success', title:'Terhapus', timer:1000, showConfirmButton:false});
+    } catch(e){ Swal.fire('Error', e.message, 'error'); }
+};
+
+window.resetForm = function() {
+    document.getElementById("form-struktur").reset();
+    document.getElementById("data-id").value = "";
+    document.getElementById("img-preview").src = DEFAULT_AVATAR;
+    const btn = document.getElementById("btn-submit");
+    btn.innerText = "Simpan Data";
+    btn.classList.replace("bg-blue-600", "bg-slate-900");
+};
+
+// ==========================================
+// 5. INIT
+// ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-    window.currentData = [];
-    
-    // --- FIX START: Menunggu Firebase Auth & Database Siap ---
     const checkDB = setInterval(() => {
         if (window.adminDB && window.firebaseAuth) {
             clearInterval(checkDB);
-            
-            // Cek Status Login Firebase
             onAuthStateChanged(window.firebaseAuth, (user) => {
                 if (user) {
-                    console.log("✅ Auth OK. Mengambil Data...");
-                    
-                    // Ambil Data Pengurus
-                    window.adminDB.listenList("pengurus", (data) => { 
-                        window.currentData = data; 
-                        renderList(data); 
-                    });
-
-                    // Ambil Data Departemen
                     window.adminDB.listenList("departemen_data", (data) => {
-                        const s1 = document.getElementById("inp-dept");
-                        const s2 = document.getElementById("inp-info-code");
-                        if(s1 && s2) {
-                            s1.innerHTML = ""; s2.innerHTML = "";
-                            data.sort((a,b) => (a.id === 'BPH' ? -1 : 1)).forEach(d => {
-                                s1.innerHTML += `<option value="${d.id}">${d.id}</option>`;
-                                s2.innerHTML += `<option value="${d.id}">${d.id}</option>`;
-                            });
+                        window.deptData = data.sort((a,b)=>(a.no_urut||99)-(b.no_urut||99));
+                        const dd = document.getElementById("inp-dept");
+                        if(dd) {
+                            const cur = dd.value; dd.innerHTML = "";
+                            window.deptData.forEach(d => dd.innerHTML += `<option value="${d.id}">${d.id} - ${d.nama_lengkap}</option>`);
+                            if(cur) dd.value = cur;
                         }
+                        renderListBasedOnTab();
+                        if(window.activeTab === 'departemen') window.resetDeptForm();
                     });
-                } else {
-                    console.warn("⚠️ User tidak login. Redirecting...");
-                    sessionStorage.removeItem("isLoggedIn"); // Bersihkan session lokal
-                    window.location.href = "login";
-                }
+                    window.adminDB.listenList("pengurus", (data) => { window.currentData = data; renderListBasedOnTab(); });
+                } else { window.location.href = "../login/"; }
             });
         }
     }, 500);
-    // --- FIX END ---
 
     const searchBox = document.getElementById("search-box");
     searchBox.addEventListener("keydown", (e) => {
-        if (["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) {
-            e.preventDefault();
-            handleSearch(searchBox.value, e);
-        }
+        if (["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) { e.preventDefault(); window.handleSearch(searchBox.value, e); }
     });
     searchBox.addEventListener("keyup", (e) => {
-        if (!["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) handleSearch(searchBox.value);
+        if (!["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) window.handleSearch(searchBox.value);
     });
-
     document.addEventListener("click", (e) => {
-        if (!searchBox.contains(e.target)) {
-            document.getElementById("search-suggestions").classList.add("hidden");
-            document.getElementById("list-data").classList.remove("searching-mode");
-        }
+        if (!searchBox.contains(e.target)) document.getElementById("search-suggestions").classList.add("hidden");
     });
 
-    // Validasi Ganda & Simpan
     document.getElementById("form-struktur").addEventListener("submit", async (e) => {
         e.preventDefault();
         const btn = document.getElementById("btn-submit");
         const nama = document.getElementById("inp-nama").value.trim();
+        const jabatan = document.getElementById("inp-jabatan").value.trim();
+        const departemen = document.getElementById("inp-dept").value;
         const currentID = document.getElementById("data-id").value;
-        
-        if (window.currentData.some(x => x.nama.toLowerCase() === nama.toLowerCase() && x.id !== currentID)) {
-            return Swal.fire('Error', `Nama "${nama}" sudah ada di database!`, 'error');
-        }
-
-        btn.disabled = true; btn.innerHTML = "Menyimpan...";
+        btn.disabled = true; btn.innerText = "Menyimpan...";
         try {
-            const cleanID = currentID || nama.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            let cleanID = currentID;
+            if (!cleanID) {
+                const deptObj = window.deptData.find(d => d.id === departemen);
+                const deptCode = deptObj ? String(deptObj.kode || "99").padStart(2,'0') : "99";
+                const rankCode = String(getRank(jabatan) + 1).padStart(2, '0');
+                let slugJabatan = jabatan.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace('departemen', 'dept'); 
+                cleanID = `${deptCode}_${departemen}_${rankCode}_${slugJabatan}`;
+                const existing = window.currentData.filter(d => d.id && d.id.startsWith(cleanID));
+                if (existing.length > 0) cleanID += `_${String(existing.length + 1).padStart(2, '0')}`;
+                if(window.currentData.some(d => d.id === cleanID)) cleanID += `_${Date.now()}`;
+            }
             let photoUrl = document.getElementById("inp-foto-url").value;
             const file = document.getElementById("inp-file").files[0];
-            if (file) photoUrl = await window.adminDB.uploadFile(file, "pengurus-images", `kabinet/${document.getElementById("inp-dept").value}/${cleanID}`);
+            if (file) photoUrl = await window.adminDB.uploadFile(file, "pengurus-images", `kabinet/${departemen}/${cleanID}`);
+            await window.adminDB.saveWithId("pengurus", cleanID, { nama, departemen, jabatan, foto: photoUrl, updatedAt: new Date().toISOString() });
+            Swal.fire({title:'Sukses', icon:'success', timer:1000, showConfirmButton:false}); window.resetForm();
+        } catch(e){ Swal.fire('Error', e.message, 'error'); } 
+        finally { btn.disabled = false; btn.innerText = currentID ? "Simpan Perubahan" : "Simpan Data"; }
+    });
 
-            await window.adminDB.saveWithId("pengurus", cleanID, {
-                nama, departemen: document.getElementById("inp-dept").value,
-                jabatan: document.getElementById("inp-jabatan").value,
-                foto: photoUrl, updatedAt: new Date().toISOString()
-            });
-            Swal.fire({ title: 'Berhasil', icon: 'success', timer: 1000 });
-            window.resetForm();
-        } catch (err) { Swal.fire('Error', err.message, 'error'); }
-        finally { btn.disabled = false; btn.innerText = "Simpan Data"; }
+    document.getElementById("form-dept").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btn-save-dept");
+        const id = document.getElementById("inp-dept-id").value.trim().toUpperCase().replace(/\s+/g, '_');
+        const nama = document.getElementById("inp-dept-name").value.trim();
+        const desc = document.getElementById("inp-dept-desc").value.trim();
+        const urut = parseInt(document.getElementById("inp-dept-order").value);
+        if (!window.isEditingDept && window.deptData.some(d => d.id === id)) return Swal.fire('Error', `ID ${id} sudah ada!`, 'error');
+        btn.disabled = true; btn.innerText = "Processing...";
+        try {
+            await window.adminDB.saveWithId("departemen_data", id, { id, nama_lengkap: nama, deskripsi: desc, no_urut: urut, kode: String(urut).padStart(2, '0'), updatedAt: new Date().toISOString() });
+            Swal.fire({title:'Sukses', icon:'success', timer:1000, showConfirmButton:false}); window.resetDeptForm();
+        } catch(e){ Swal.fire('Error', e.message, 'error'); }
+        finally { btn.disabled = false; btn.innerText = window.isEditingDept ? "Update Dept" : "Simpan Dept"; }
+    });
+
+    document.getElementById("inp-file").addEventListener("change", function(e) {
+        if(e.target.files && e.target.files[0]) { const reader = new FileReader(); reader.onload = function(ev) { document.getElementById("img-preview").src = ev.target.result; }; reader.readAsDataURL(e.target.files[0]); }
     });
 });

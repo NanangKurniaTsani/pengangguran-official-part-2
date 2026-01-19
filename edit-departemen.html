@@ -3,54 +3,125 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manajemen Pengurus - Admin BTM FILKOM</title>
+    <title>Manajemen Data - Admin BTM</title>
     <link rel="stylesheet" href="./style.css" />
-    <link rel="icon" type="image/png" href="./images/logo-btm.png" />
-  
+    <link rel="icon" type="image/png" href="../image/logo-btm.png" />
+    
   </head>
-  <body class="bg-bg text-slate-600 min-h-screen flex flex-col">
-    <div id="sidebar-overlay" onclick="window.toggleListMobile()" class="fixed inset-0 z-60 hidden transition-all duration-300"></div>
+  
+  <body class="bg-gray-50 text-slate-600 min-h-screen flex flex-col font-sans text-sm selection:bg-blue-100 selection:text-blue-900">
+    
+    <div id="sidebar-overlay" onclick="window.toggleListMobile()" class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm hidden transition-all duration-300"></div>
 
-    <nav class="sticky top-0 z-100 w-full bg-nav backdrop-blur-md border-b border-nav/60 shadow-sm">
+    <nav class="sticky top-0 z-40 w-full bg-nav backdrop-blur-md border-b border-nav/60 shadow-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
-          <a href="index.html" class="flex items-center gap-2 text-sm font-medium text-bg/60 hover:text-bg transition-colors group">
-            <div class="p-1.5 rounded-full bg-bg/60 group-hover:bg-bg">
-              <svg class="w-4 h-4 text-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+          <a
+            href="index.html"
+            class="flex items-center gap-2 text-sm font-medium text-bg/60 hover:text-bg transition-colors group"
+          >
+            <div
+              class="p-1.5 rounded-full bg-bg/60 group-hover:bg-bg transition-colors"
+            >
+              <svg
+                class="w-4 h-4 text-nav"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                ></path>
+              </svg>
             </div>
             <span>Dashboard</span>
           </a>
+
           <div class="flex items-center gap-3">
-            <span class="text-xs font-bold tracking-wider text-bg/60 uppercase hidden sm:block">Admin Panel</span>
+            <span
+              class="text-xs font-bold tracking-wider text-bg/60 uppercase hidden sm:block"
+              >Admin Panel</span
+            >
             <div class="h-4 w-px bg-accent hidden sm:block"></div>
             <span class="font-bold text-bg text-lg">Manajemen Pengurus</span>
           </div>
-          
+
+          <button
+            id="logoutBtn"
+            class="hidden items-center gap-2 px-4 py-2 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-300 group"
+          >
+            <span
+              class="font-bold text-sm hidden md:block group-hover:text-red-600"
+              >Logout</span
+            >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="w-6 h-6"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+              />
+            </svg>
+          </button>
         </div>
       </div>
     </nav>
 
-    <main class="grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full pb-24 lg:pb-8">
-      <div class="grid lg:grid-cols-12 gap-8 items-start relative">
+    <main class="grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
         
-        <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="bg-slate-50/50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-              <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                <span class="flex h-2 w-2 rounded-full bg-blue-500"></span> Input Pengurus
-              </h3>
+        <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-24 h-fit pb-24 lg:pb-0">
+          
+          <div class="w-full">
+            <div class="lg:hidden relative mb-4">
+              <select onchange="window.switchTab(this.value)" id="tab-select-mobile" class="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 shadow-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                <option value="pengurus">Manajemen Pengurus</option>
+                <option value="departemen">Manajemen Departemen</option>
+              </select>
+              <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </div>
             </div>
+
+            <div class="hidden lg:flex gap-2 bg-white p-1.5 rounded-xl border border-slate-200 w-fit shadow-sm mb-4">
+              <button onclick="window.switchTab('pengurus')" id="tab-pengurus" class="px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-slate-900 text-white shadow-md">
+                Pengurus
+              </button>
+              <button onclick="window.switchTab('departemen')" id="tab-dept" class="px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all text-slate-500 hover:bg-slate-50">
+                Departemen
+              </button>
+            </div>
+          </div>
+
+          <div id="section-pengurus" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50/80 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+              <h3 class="font-bold text-slate-700 text-xs uppercase tracking-wide flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-blue-500"></span> Input Pengurus
+              </h3>
+              <button onclick="window.resetForm()" class="text-[10px] font-bold text-slate-400 hover:text-blue-500 uppercase transition-colors">Reset</button>
+            </div>
+            
             <form id="form-struktur" class="p-6 space-y-6">
               <input type="hidden" id="data-id" />
               <input type="hidden" id="inp-foto-url" />
               
               <div class="flex justify-center">
                 <div class="relative group cursor-pointer">
-                  <div class="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-lg ring-1 ring-slate-100">
-                    <img id="img-preview" src="https://ui-avatars.com/api/?name=User&background=f1f5f9&color=64748b" class="w-full h-full object-cover" />
+                  <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg ring-1 ring-slate-100 group-hover:ring-blue-200 transition-all">
+                    <img id="img-preview" src="https://ui-avatars.com/api/?name=User&background=f1f5f9&color=64748b" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   </div>
-                  <div class="absolute bottom-0 right-0 bg-slate-900 text-white p-2.5 rounded-full shadow-md">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-8.9l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                  <div class="absolute bottom-0 right-0 bg-slate-800 text-white p-2 rounded-full shadow-md hover:bg-black transition-colors">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-8.9l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
                   </div>
                   <input type="file" id="inp-file" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*" />
                 </div>
@@ -58,101 +129,104 @@
 
               <div class="space-y-4">
                 <div>
-                  <label class="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Nama Lengkap</label>
-                  <input type="text" id="inp-nama" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all" required />
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1 ml-1 uppercase">Nama Lengkap</label>
+                  <input type="text" id="inp-nama" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 transition-all" required />
                 </div>
                 <div>
-                  <label class="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Departemen</label>
-                  <select id="inp-dept" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none"></select>
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1 ml-1 uppercase">Departemen</label>
+                  <div class="relative">
+                    <select id="inp-dept" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none font-medium text-slate-700 cursor-pointer appearance-none"></select>
+                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-slate-500">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                  </div>
                 </div>
                 <div>
-                  <label class="block text-xs font-bold text-slate-500 mb-1 ml-1 uppercase">Jabatan</label>
-                  <input type="text" id="inp-jabatan" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all" required />
+                  <label class="block text-[10px] font-bold text-slate-400 mb-1 ml-1 uppercase">Jabatan</label>
+                  <input type="text" id="inp-jabatan" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold text-slate-700 transition-all" required />
                 </div>
               </div>
 
-              <div class="pt-2 flex gap-3">
-                <button type="submit" id="btn-submit" class="flex-1 bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-black transition-all">Simpan Data</button>
-                <button type="button" onclick="window.resetForm()" class="px-5 py-3 bg-white border border-slate-200 text-slate-400 rounded-xl text-sm font-bold hover:text-red-500 transition-all">Batal</button>
+              <div class="flex gap-3 pt-2">
+                <button type="submit" id="btn-submit" class="flex-1 bg-slate-900 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-black transition-all active:scale-95 shadow-lg shadow-slate-200">Simpan Data</button>
+                <button type="button" onclick="window.resetForm()" class="px-5 py-3 bg-white border border-slate-200 text-slate-400 rounded-xl text-xs font-bold hover:text-red-500 transition-all uppercase">Batal</button>
               </div>
             </form>
           </div>
 
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="bg-slate-50/50 px-6 py-3 border-b border-slate-100 flex justify-between items-center">
-              <h3 class="font-bold text-slate-600 text-[11px] uppercase tracking-wider">Info Departemen</h3>
+          <div id="section-dept" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hidden border-l-4 border-l-amber-400">
+            <div class="bg-amber-50/50 px-6 py-4 border-b border-amber-100 flex justify-between items-center">
+              <h3 class="font-bold text-amber-700 text-xs uppercase tracking-wide">Input Departemen</h3>
+              <button onclick="window.resetDeptForm()" class="text-[10px] font-bold text-amber-400 hover:text-amber-600 uppercase transition-colors">Reset</button>
             </div>
-            <form id="form-info-dept" class="p-6 space-y-4">
-              <div>
-                <label class="block text-xs font-bold text-slate-500 mb-1 uppercase ml-1">Pilih Departemen</label>
-                <select id="inp-info-code" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none"></select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-500 mb-1 uppercase ml-1">Nama Resmi</label>
-                <input type="text" id="inp-info-name" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none" />
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-500 mb-1 uppercase ml-1">Tugas Pokok</label>
-                <textarea id="inp-info-desc" rows="3" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none outline-none"></textarea>
-              </div>
-              <button type="submit" class="w-full bg-blue-50 text-blue-600 py-3 rounded-xl font-bold text-[10px] hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest">Update Info</button>
-            </form>
+            
+            <div class="p-6 space-y-5">
+              <form id="form-dept" class="space-y-4">
+                <div class="grid grid-cols-12 gap-3">
+                  <div class="col-span-4">
+                    <label class="block text-[9px] font-bold text-slate-400 mb-1 uppercase">ID</label>
+                    <input type="text" id="inp-dept-id" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-800 uppercase text-center focus:ring-2 focus:ring-amber-400 outline-none" placeholder="BPH" required />
+                  </div>
+                  <div class="col-span-8">
+                    <label class="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Nama Resmi</label>
+                    <input type="text" id="inp-dept-name" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:ring-2 focus:ring-amber-400 outline-none" placeholder="Departemen..." required />
+                  </div>
+                </div>
+                <div>
+                   <label class="block text-[9px] font-bold text-slate-400 mb-1 uppercase">Tugas Pokok</label>
+                  <textarea id="inp-dept-desc" rows="3" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 resize-none focus:ring-2 focus:ring-amber-400 outline-none"></textarea>
+                </div>
+                <div class="flex gap-2">
+                  <input type="number" id="inp-dept-order" class="w-20 px-2 py-2 bg-slate-50 border border-slate-200 rounded-lg text-center text-sm font-bold text-slate-600 focus:ring-2 focus:ring-amber-400 outline-none" placeholder="Urut" min="1" required />
+                  <button type="submit" id="btn-save-dept" class="flex-1 bg-amber-400 text-white py-2 rounded-lg font-bold text-xs uppercase hover:bg-amber-500 transition-all shadow-md shadow-amber-100 active:scale-95">Simpan Dept</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
 
-       <div id="list-container" class="fixed inset-y-0 left-0 z-110 w-[85%] sm:w-80 lg:w-auto -translate-x-full lg:translate-x-0 transition-transform duration-300 bg-white lg:bg-transparent lg:flex lg:col-span-7 flex-col h-full lg:h-[calc(100vh-8rem)] lg:sticky lg:top-24 overflow-hidden border-r lg:border-none border-slate-200 shadow-2xl lg:shadow-none">
-  <div class="bg-white lg:rounded-2xl lg:border lg:border-slate-200 shadow-sm flex flex-col h-full overflow-hidden">
-    
-    <div class="p-4 border-b border-slate-100 flex flex-col gap-3 bg-white relative z-150">
-      <div class="flex justify-between items-center">
-        <h3 class="font-bold text-slate-800 text-sm">Daftar Pengurus</h3>
-        <button onclick="window.toggleListMobile()" class="lg:hidden p-2 text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg></button>
-      </div>
+        <div id="list-container" class="fixed inset-y-0 left-0 z-50 w-[85%] sm:w-80 lg:w-auto 
+                    -translate-x-full transition-transform duration-300 ease-in-out
+                    bg-white shadow-2xl border-r border-slate-200
+                    lg:static lg:block lg:translate-x-0 lg:col-span-7 lg:shadow-none lg:border-none lg:bg-transparent lg:top-24 lg:h-[calc(100vh-8rem)]">
+          
+          <div class="bg-white lg:rounded-2xl lg:border lg:border-slate-200 shadow-sm flex flex-col h-full overflow-hidden">
+            
+            <div class="p-4 border-b border-slate-100 flex flex-col gap-3 bg-white relative z-30 shrink-0">
+              <div class="flex justify-between items-center">
+                <h3 id="list-title" class="font-bold text-slate-800 text-sm">Daftar Pengurus</h3>
+                <button onclick="window.toggleListMobile()" class="lg:hidden p-2 text-slate-400 hover:text-red-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+              </div>
 
-     <div class="relative">
-  <div class="relative z-160 group">
-    <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-    </svg>
-    
-    <input
-      type="text"
-      id="search-box"
-      placeholder="Cari pengurus..."
-      class="w-full p-2.5 pl-10 pr-10 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500 transition-all"
-      autocomplete="off"
-    />
+              <div class="relative">
+                <div class="relative z-40 group">
+                  <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                  <input type="text" id="search-box" placeholder="Cari data..." class="w-full p-2.5 pl-10 pr-10 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500 transition-all focus:bg-white" autocomplete="off" />
+                  <button id="clear-search" onclick="window.resetSearch()" class="hidden absolute right-3 top-2.5 p-1 text-slate-400 hover:text-red-500 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  </button>
+                </div>
+                <div id="search-suggestions" class="hidden absolute top-[calc(100%+8px)] left-0 right-0 rounded-2xl border border-slate-100 bg-white z-50 max-h-80 overflow-y-auto shadow-2xl"></div>
+              </div>
+            </div>
 
-    <button 
-      id="clear-search" 
-      onclick="window.resetSearch()"
-      class="hidden absolute right-3 top-2.5 p-1 text-slate-400 hover:text-red-500 transition-colors"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-      </svg>
-    </button>
-  </div>
-  
-  <div id="search-suggestions" class="hidden absolute top-[calc(100%+8px)] left-0 right-0 rounded-2xl border border-slate-100 z-170 max-h-80 overflow-y-auto shadow-2xl"></div>
-</div>
-      </div>
-
-    <div id="list-data" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30 custom-scrollbar pb-24 relative z-10"></div>
-  </div>
-</div>
-
+            <div id="list-data" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 custom-scrollbar pb-24 lg:pb-5 relative z-10">
+              </div>
+          </div>
+        </div>
 
       </div>
     </main>
 
-    <button onclick="window.toggleListMobile()" class="fixed bottom-6 right-6 lg:hidden bg-slate-900 text-white p-4 rounded-full shadow-2xl z-40 flex items-center justify-center active:scale-95 transition-all border-4 border-white">
+    <button onclick="window.toggleListMobile()" class="fixed bottom-6 right-6 lg:hidden bg-slate-900 text-white p-4 rounded-full shadow-2xl shadow-slate-900/40 z-50 border-4 border-white active:scale-95 transition-all hover:bg-black flex items-center justify-center">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
     </button>
 
     <script type="module" src="./database/firebase.js"></script>
     <script type="module" src="./database/supabase.js"></script>
-    <script type="module" src="script.js"></script>
     <script type="module" src="edit-departemen.js"></script>
+    <script type="module" src="script.js"></script>
+
+   
   </body>
 </html>
