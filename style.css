@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --color-nav: #252c37;
+  --color-bg: #f8fafc;
+  --color-primary: #0f172a;
+  --color-accent: #00b3e2;
+}
+
+@layer base {
+  body { @apply antialiased bg-slate-50 text-slate-600; }
+  html { scroll-padding-top: 80px; }
+}
+
+@layer components {
+  .form-label { @apply block text-[11px] font-extrabold text-slate-400 uppercase mb-1.5 tracking-widest; }
+  .form-input { @apply w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-accent/10 focus:border-accent transition-all placeholder:text-slate-300; }
+  .btn-primary { @apply bg-primary text-white py-3.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-md active:scale-95 disabled:opacity-50; }
+
+  /* SEARCH SUGGESTION UI */
+  .sug-item {
+    @apply p-3 flex items-center gap-3 border-b border-slate-50 transition-colors duration-150 cursor-pointer bg-white;
+  }
+
+  /* Member State (Blue) */
+  .sug-item[data-type="member"]:hover,
+  .sug-item[data-type="member"].is-active {
+    @apply bg-blue-50;
+  }
+  .sug-item[data-type="member"]:hover p:first-child,
+  .sug-item[data-type="member"].is-active p:first-child {
+    @apply text-blue-700;
+  }
+
+  /* Dept State (Amber) */
+  .sug-item[data-type="dept"]:hover,
+  .sug-item[data-type="dept"].is-active {
+    @apply bg-amber-50;
+  }
+  .sug-item[data-type="dept"]:hover p:first-child,
+  .sug-item[data-type="dept"].is-active p:first-child {
+    @apply text-amber-800;
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-slate-200 rounded-full hover:bg-slate-300; }
+  .fade-in { animation: fadeIn 0.3s ease-in-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+}
