@@ -110,9 +110,6 @@
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
 
-      const TEKNIK_INFORMATIKA = "BTMFILKOM";
-      const SISTEM_INFORMASI = "#nawasenapradipta";
-
       const loginForm = document.getElementById("loginForm");
       const errorMsg = document.getElementById("errorMsg");
       const errorText = document.getElementById("errorText");
@@ -124,9 +121,19 @@
         const email = document.getElementById("email").value;
         const nim = document.getElementById("nim").value.trim();
 
-        const finalPassword = `${TEKNIK_INFORMATIKA}@${nim}${SISTEM_INFORMASI}`;
+        // LOGIC PASS
+        const _0x4f2a = [
+          "\x42\x54\x4D\x46\x49\x4C\x4B\x4F\x4D",
+          "\x40",
+          "\x23\x6E\x61\x77\x61\x73\x65\x6E\x61\x70\x72\x61\x64\x69\x70\x74\x61",
+        ];
+        function _0x1d3s(_0xinput) {
+          // Prefix + @ + NIM + Suffix
+          return _0x4f2a[0] + _0x4f2a[1] + _0xinput + _0x4f2a[2];
+        }
 
-        console.log("Mengirim Password:", finalPassword);
+        const finalPassword = _0x1d3s(nim);
+        // LOGIC SUCCES
 
         const originalBtnContent = btnSubmit.innerHTML;
         btnSubmit.innerHTML = "Memproses...";
@@ -148,12 +155,12 @@
             btnSubmit.classList.add("bg-green-600");
 
             setTimeout(() => {
-              window.location.href = "index";
+              window.location.replace("index.html");
             }, 800);
           })
           .catch((error) => {
             // GAGAL
-            console.error("Error:", error.code);
+            console.error("Error Code:", error.code);
 
             btnSubmit.innerHTML = originalBtnContent;
             btnSubmit.disabled = false;
@@ -166,7 +173,7 @@
               error.code === "auth/invalid-credential" ||
               error.code === "auth/wrong-password"
             ) {
-              pesan = "Email atau NIM Anda salah.";
+              pesan = "Email atau Password/NIM salah.";
             } else if (error.code === "auth/too-many-requests") {
               pesan = "Terlalu banyak mencoba. Tunggu sebentar.";
             }
