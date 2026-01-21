@@ -1,271 +1,173 @@
 <!doctype html>
 <html lang="id" class="scroll-smooth">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- CEK TIKET MASUK -->
-    <script>
-      if (!sessionStorage.getItem("isLoggedIn")) {
-        window.location.replace("login.html");
-      }
-    </script>
-    <!-- END CEK TIKET MASUK -->
-    <title>Manajemen Publikasi</title>
-    <link rel="stylesheet" href="./style.css" />
-    <link rel="icon" type="image/png" href="./images/logo-btm.png" />
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    if (!sessionStorage.getItem("isLoggedIn")) window.location.replace("login.html");
+  </script>
+  <title>Manajemen Publikasi - Admin BTM</title>
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="icon" type="image/png" href="./images/logo-btm.png" />
+</head>
 
-  <body class="bg-bg">
-    <nav
-      class="sticky top-0 z-40 w-full bg-nav backdrop-blur-md border-b border-nav/60 shadow-sm"
-    >
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-          <a
-            href="index.html"
-            class="flex items-center gap-2 text-sm font-medium text-bg/60 hover:text-bg transition-colors group"
-          >
-            <div
-              class="p-1.5 rounded-full bg-bg/60 group-hover:bg-bg transition-colors"
-            >
-              <svg
-                class="w-4 h-4 text-nav"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                ></path>
-              </svg>
+<body class="bg-gray-50 text-slate-600 min-h-screen flex flex-col font-sans text-sm selection:bg-blue-100 selection:text-blue-900">
+
+  <div id="sidebar-overlay" onclick="window.toggleListMobile()" class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm hidden transition-all duration-300 lg:hidden"></div>
+  
+  <div id="modal-overlay" class="fixed inset-0 z-100 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 transition-all duration-300">
+    <div id="modal-content" class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col max-h-[90vh]"></div>
+  </div>
+
+  <nav class="sticky top-0 z-30 w-full bg-nav backdrop-blur-md border-b border-slate-200 shadow-sm h-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+      <div class="flex items-center justify-between h-full gap-4">
+        <a href="index.html" class="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors group shrink-0">
+          <div class="p-2 rounded-full bg-slate-100 group-hover:bg-blue-50 group-hover:text-blue-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+          </div>
+          <span class="hidden sm:inline">Kembali</span>
+        </a>
+
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold tracking-wider text-slate-400 uppercase hidden sm:block">Admin Panel</span>
+          <div class="h-4 w-px bg-slate-200 hidden sm:block"></div>
+          <span class="font-bold text-slate-800 text-lg">Publikasi</span>
+        </div>
+
+        <button id="logoutBtn" class="hidden items-center gap-2 px-3 py-2 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-300 group shrink-0">
+          <span class="font-bold text-sm hidden md:block group-hover:text-red-600">Logout</span>
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-24 h-fit pb-24 lg:pb-0 order-2 lg:order-1 z-10">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-visible relative">
+          
+          <div class="bg-slate-50/80 px-6 py-4 border-b border-slate-100 flex justify-between items-center relative z-20 rounded-t-2xl">
+            <div class="relative">
+              <button onclick="window.toggleFormMenu()" class="flex items-center gap-2 text-slate-800 font-extrabold text-xs uppercase tracking-wide group focus:outline-none select-none hover:text-blue-600 transition-colors">
+                <span id="form-title-text" class="border-b-2 border-transparent">INPUT BERITA</span>
+                <svg id="form-arrow" class="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </button>
+
+              <div id="form-menu-dropdown" class="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-slate-100 hidden origin-top-left transition-all z-50">
+                <div class="p-1">
+                  <button onclick="window.switchMode('berita')" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-50 text-xs font-bold text-slate-600 hover:text-blue-600 flex items-center gap-3 transition-colors">
+                    <div class="w-2 h-2 rounded-full bg-blue-500"></div> Input Berita
+                  </button>
+                  <button onclick="window.switchMode('dokumentasi')" class="w-full text-left px-4 py-3 rounded-lg hover:bg-amber-50 text-xs font-bold text-slate-600 hover:text-amber-600 flex items-center gap-3 transition-colors">
+                    <div class="w-2 h-2 rounded-full bg-amber-500"></div> Input Dokumentasi
+                  </button>
+                </div>
+              </div>
             </div>
-            <span>Dashboard</span>
-          </a>
-
-          <div class="flex items-center gap-3">
-            <span
-              class="text-xs font-bold tracking-wider text-bg/60 uppercase hidden sm:block"
-              >Admin Panel</span
-            >
-            <div class="h-4 w-px bg-accent hidden sm:block"></div>
-            <span class="font-bold text-bg text-lg">Manajemen Publikasi</span>
+            <button onclick="window.resetForm()" class="text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase transition-colors">Reset</button>
           </div>
 
-          <button
-            id="logoutBtn"
-            class="hidden items-center gap-2 px-4 py-2 rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all duration-300 group"
-          >
-            <span
-              class="font-bold text-sm hidden md:block group-hover:text-red-600"
-              >Logout</span
-            >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="2"
-              stroke="currentColor"
-              class="w-6 h-6"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </nav>
-
-    <main class="grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
-      <div class="mb-8">
-        <h1 class="text-2xl font-extrabold text-slate-900">
-          Publikasi & Dokumentasi
-        </h1>
-        <p class="text-slate-500 text-sm mt-1">
-          Kelola konten berita dan dokumentasi kegiatan.
-        </p>
-      </div>
-
-      <div class="grid lg:grid-cols-12 gap-8 items-start">
-        <div class="lg:col-span-6">
-          <div
-            class="bg-white rounded-2xl border border-slate-200 shadow-sm sticky top-24 overflow-hidden"
-          >
-            <div class="border-b border-slate-100 px-6 py-4 bg-slate-50">
-              <h3 class="font-bold text-slate-800 text-sm">Form Editor</h3>
-            </div>
-
-            <form id="form-publikasi" class="p-6 space-y-5">
+          <div class="p-5">
+            <form id="form-publikasi" class="space-y-4">
               <input type="hidden" id="data-id" />
+              <input type="hidden" id="inp-kategori" value="berita" />
 
-              <div>
-                <label
-                  class="block text-xs font-bold text-slate-700 uppercase mb-2"
-                  >Kategori</label
-                >
-                <select
-                  id="inp-kategori"
-                  class="w-full px-4 py-3 rounded-lg border border-slate-200 bg-blue-50/50 text-blue-900 font-bold text-sm focus:border-blue-500 outline-none cursor-pointer"
-                >
-                  <option value="berita">📰 Berita / Artikel</option>
-                  <option value="dokumentasi">📷 Dokumentasi Kegiatan</option>
-                </select>
-              </div>
-
-              <div class="grid md:grid-cols-2 gap-4">
+              <div class="space-y-4">
                 <div>
-                  <label
-                    class="block text-xs font-bold text-slate-700 uppercase mb-2"
-                    >Judul</label
-                  >
-                  <input
-                    type="text"
-                    id="inp-judul"
-                    class="w-full px-4 py-3 rounded-lg border border-slate-200 text-sm font-semibold outline-none focus:border-blue-500"
-                    placeholder="Judul..."
-                    required
-                  />
+                  <label class="form-label">Judul Postingan</label>
+                  <input type="text" id="inp-judul" class="form-input" placeholder="Judul konten..." required />
                 </div>
+                
                 <div>
-                  <label
-                    class="block text-xs font-bold text-slate-700 uppercase mb-2"
-                    >Tanggal</label
-                  >
-                  <input
-                    type="date"
-                    id="inp-date"
-                    class="w-full px-4 py-3 rounded-lg border border-slate-200 text-sm outline-none focus:border-blue-500"
-                    required
-                  />
-                </div>
-              </div>
+                  <label class="form-label">Gambar Utama (Max 2MB)</label>
+                  <div class="relative group h-48 w-full">
+                    <div id="drop-zone" class="absolute inset-0 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-center hover:bg-blue-50 hover:border-blue-300 transition-all cursor-pointer overflow-hidden">
+                      <input type="file" id="inp-file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+                      <input type="hidden" id="inp-img-url" />
 
-              <div>
-                <label
-                  class="block text-xs font-bold text-slate-700 uppercase mb-2"
-                  >Gambar</label
-                >
-                <div class="relative group h-48">
-                  <div
-                    id="drop-zone"
-                    class="absolute inset-0 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center text-center hover:bg-blue-50 transition"
-                  >
-                    <input
-                      type="file"
-                      id="inp-file"
-                      accept="image/*"
-                      class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                    />
-                    <input type="hidden" id="inp-img-url" />
-
-                    <div
-                      id="upload-placeholder"
-                      class="flex flex-col items-center"
-                    >
-                      <p class="text-xs font-bold text-slate-600">
-                        Klik untuk upload foto
-                      </p>
-                    </div>
-                    <div
-                      id="preview-container"
-                      class="hidden absolute inset-0 w-full h-full bg-white rounded-xl overflow-hidden z-10 p-1"
-                    >
-                      <img
-                        id="img-preview"
-                        class="w-full h-full object-cover rounded-lg"
-                      />
+                      <div id="upload-placeholder" class="flex flex-col items-center transition-all duration-300 group-hover:scale-105">
+                        <div class="p-3 bg-white rounded-full shadow-sm mb-2">
+                          <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <p class="text-xs font-bold text-slate-500">Klik / Lepas gambar</p>
+                      </div>
+                      
+                      <div id="preview-container" class="hidden absolute inset-0 w-full h-full bg-slate-100 z-10 p-2">
+                          <img id="img-preview" class="w-full h-full object-contain rounded-lg" />
+                          <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                              <span class="text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">Ganti</span>
+                          </div>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                <div>
+                  <label class="form-label">Tanggal</label>
+                  <input type="date" id="inp-date" class="form-input text-slate-600" required />
+                </div>
+
+                <div>
+                  <label class="form-label">Deskripsi / Isi Konten</label>
+                  <textarea id="inp-desc" rows="5" class="form-input resize-none custom-scrollbar" placeholder="Tulis deskripsi lengkap..."></textarea>
+                </div>
+
+                <div id="container-gdrive" class="hidden transition-all duration-300">
+                  <label class="form-label">Link Google Drive</label>
+                  <input type="url" id="inp-gdrive" class="form-input" placeholder="https://drive.google.com/..." />
+                </div>
               </div>
 
-              <div>
-                <label
-                  class="block text-xs font-bold text-slate-700 uppercase mb-2"
-                  >Deskripsi</label
-                >
-                <textarea
-                  id="inp-desc"
-                  class="w-full px-4 py-3 rounded-lg border border-slate-200 text-sm outline-none focus:border-blue-500 h-24 resize-none"
-                  placeholder="Tulis keterangan..."
-                ></textarea>
-              </div>
-
-              <div id="container-gdrive" class="hidden">
-                <label
-                  class="block text-xs font-bold text-slate-700 uppercase mb-2"
-                  >Link Google Drive</label
-                >
-                <input
-                  type="url"
-                  id="inp-gdrive"
-                  class="w-full px-4 py-3 rounded-lg border border-slate-200 text-sm font-semibold outline-none focus:border-blue-500"
-                  placeholder="https://drive.google.com/..."
-                />
-              </div>
-
-              <div class="flex gap-3 pt-2">
-                <button
-                  type="submit"
-                  id="btn-submit"
-                  class="flex-1 bg-slate-900 text-white py-3 rounded-lg font-bold text-sm hover:bg-blue-600 transition shadow-lg"
-                >
-                  SIMPAN DATA
-                </button>
-                <button
-                  type="button"
-                  onclick="resetForm()"
-                  class="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-50 transition"
-                >
-                  RESET
-                </button>
+              <div class="pt-2">
+                <button type="submit" id="btn-submit" class="btn-primary w-full py-3 shadow-lg shadow-slate-200">SIMPAN DATA</button>
               </div>
             </form>
           </div>
         </div>
+      </div>
 
-        <div class="lg:col-span-6">
-          <div
-            class="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[80vh] sticky top-24"
-          >
-            <div
-              class="border-b border-slate-100 p-4 bg-white z-10 flex justify-between items-center"
-            >
-              <h3 class="font-bold text-slate-800 text-sm">
-                Arsip
-                <span id="lbl-koleksi" class="text-blue-600 uppercase"
-                  >BERITA</span
-                >
-              </h3>
-              <div class="flex items-center gap-2">
-                <span
-                  class="w-2 h-2 rounded-full bg-green-500 animate-pulse"
-                ></span>
-                <span class="text-[10px] font-bold text-slate-400">LIVE</span>
+      <div id="list-container" class="fixed inset-y-0 left-0 z-50 lg:z-0 w-[85%] sm:w-80 lg:w-auto -translate-x-full transition-transform duration-300 ease-in-out bg-white shadow-2xl border-r border-slate-200 lg:static lg:block lg:translate-x-0 lg:col-span-7 lg:shadow-none lg:border-none lg:bg-transparent lg:h-fit lg:order-2">
+        <div class="bg-white lg:rounded-2xl lg:border lg:border-slate-200 shadow-sm flex flex-col h-full lg:h-[calc(100vh-8rem)] overflow-hidden relative">
+          
+          <div class="p-4 border-b border-slate-100 flex flex-col gap-3 bg-white relative z-60 shrink-0">
+            <div class="flex justify-between items-center">
+              <h3 class="font-bold text-slate-800 text-sm">Arsip <span id="lbl-koleksi" class="text-blue-600 uppercase">BERITA</span></h3>
+              <button onclick="window.toggleListMobile()" class="lg:hidden p-2 text-slate-400 hover:text-red-500 bg-slate-50 rounded-lg">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+
+            <div class="relative">
+              <div class="relative z-70 group bg-white rounded-xl">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input type="text" id="search-box" placeholder="Cari postingan..." class="w-full p-2.5 pl-10 pr-10 bg-slate-50 border border-slate-100 rounded-xl outline-none text-sm focus:ring-2 focus:ring-blue-500 transition-all focus:bg-white relative z-20" autocomplete="off" />
+                <button id="clear-search" onclick="window.resetSearch()" class="hidden absolute right-3 top-2.5 p-1 text-slate-400 hover:text-red-500 transition-colors z-20">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
               </div>
+              <div id="search-suggestions" class="hidden absolute top-[calc(100%+8px)] left-0 right-0 rounded-2xl border border-slate-100 bg-white z-80 max-h-80 overflow-y-auto shadow-2xl"></div>
             </div>
+          </div>
 
-            <div
-              id="list-data"
-              class="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar bg-slate-50/50"
-            >
-              <p class="text-center text-gray-400 text-xs py-10">
-                Memuat data...
-              </p>
-            </div>
+          <div id="list-data" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 custom-scrollbar pb-32 lg:pb-5 relative z-10">
+            <p class="text-center text-slate-400 text-xs py-10">Memuat data...</p>
           </div>
         </div>
       </div>
-    </main>
 
-    <script type="module" src="./database/firebase.js"></script>
-    <script type="module" src="./database/supabase.js"></script>
-    <script type="module" src="./edit-publikasi.js"></script>
-    <script type="module" src="./script.js"></script>
-  </body>
+    </div>
+  </main>
+
+  <button onclick="window.toggleListMobile()" class="fixed bottom-6 right-6 lg:hidden bg-slate-900 text-white p-4 rounded-full shadow-2xl shadow-slate-900/40 z-50 border-4 border-white active:scale-95 transition-all hover:bg-black flex items-center justify-center">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+  </button>
+
+  <script type="module" src="./database/firebase.js"></script>
+  <script type="module" src="./database/supabase.js"></script>
+  <script type="module" src="./edit-publikasi.js"></script>
+  <script type="module" src="./script.js"></script>
+</body>
 </html>

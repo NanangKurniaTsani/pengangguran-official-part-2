@@ -1,28 +1,296 @@
 import Swal from "sweetalert2";
 import { onAuthStateChanged } from "firebase/auth";
 
-// --- LOGIKA GENERATE ID OTOMATIS ---
+// --- State ---
+window.currentData = [];
+window.activeCollection = "berita";
+let selectedSugIndex = -1;
+
+// --- UI Logic ---
+window.toggleFormMenu = function() {
+    const dropdown = document.getElementById("form-menu-dropdown");
+    const arrow = document.getElementById("form-arrow");
+    if (dropdown.classList.contains("hidden")) {
+        dropdown.classList.remove("hidden");
+        setTimeout(() => dropdown.classList.add("opacity-100", "scale-100"), 10);
+        arrow.classList.add("rotate-180");
+    } else {
+        dropdown.classList.remove("opacity-100", "scale-100");
+        arrow.classList.remove("rotate-180");
+        setTimeout(() => dropdown.classList.add("hidden"), 150);
+    }
+};
+
+document.addEventListener("click", (e) => {
+    const dropdown = document.getElementById("form-menu-dropdown");
+    const trigger = document.querySelector('[onclick="window.toggleFormMenu()"]');
+    if (dropdown && !dropdown.classList.contains("hidden") && !trigger.contains(e.target) && !dropdown.contains(e.target)) {
+        window.toggleFormMenu();
+    }
+});
+
+window.toggleListMobile = function() {
+    const sidebar = document.getElementById("list-container");
+    const overlay = document.getElementById("sidebar-overlay");
+    if (sidebar.classList.contains("-translate-x-full")) {
+        sidebar.classList.remove("-translate-x-full");
+        overlay.classList.remove("hidden");
+    } else {
+        sidebar.classList.add("-translate-x-full");
+        overlay.classList.add("hidden");
+    }
+};
+
+window.switchMode = function(mode) {
+    window.activeCollection = mode;
+    document.getElementById("form-title-text").innerText = mode === 'berita' ? "INPUT BERITA" : "INPUT DOKUMENTASI";
+    document.getElementById("lbl-koleksi").innerText = mode.toUpperCase();
+    document.getElementById("inp-kategori").value = mode;
+    
+    const containerGDrive = document.getElementById("container-gdrive");
+    if (mode === 'dokumentasi') containerGDrive.classList.remove("hidden");
+    else containerGDrive.classList.add("hidden");
+    
+    window.toggleFormMenu();
+    window.resetForm();
+    window.resetSearch();
+    if (typeof window.loadData === "function") window.loadData();
+};
+
+// --- Search Logic ---
+window.resetSearch = function() {
+    const searchBox = document.getElementById("search-box");
+    if(searchBox) searchBox.value = "";
+    document.getElementById("clear-search").classList.add("hidden");
+    document.getElementById("search-suggestions").classList.add("hidden");
+    selectedSugIndex = -1;
+    renderList(window.currentData);
+};
+
+window.handleSearch = function(keyword, e) {
+    const sugBox = document.getElementById("search-suggestions");
+    const clearBtn = document.getElementById("clear-search");
+    if (!sugBox || !clearBtn) return;
+
+    const kw = keyword ? keyword.toLowerCase().trim() : "";
+    kw !== "" ? clearBtn.classList.remove("hidden") : clearBtn.classList.add("hidden");
+
+    const items = sugBox.querySelectorAll('.sug-item');
+    if (e && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter")) {
+        if (items.length === 0) return;
+        if (e.key === "ArrowDown") {
+            selectedSugIndex++;
+            if (selectedSugIndex >= items.length) selectedSugIndex = 0; 
+        } else if (e.key === "ArrowUp") {
+            selectedSugIndex--;
+            if (selectedSugIndex < 0) selectedSugIndex = items.length - 1; 
+        } else if (e.key === "Enter") {
+            if (selectedSugIndex > -1 && items[selectedSugIndex]) { items[selectedSugIndex].click(); return; }
+            else { sugBox.classList.add("hidden"); applyFilterToList(kw); return; }
+        }
+        items.forEach((el, idx) => {
+            if (idx === selectedSugIndex) { el.classList.add('bg-blue-50', 'text-blue-700'); el.scrollIntoView({ block: 'nearest' }); } 
+            else { el.classList.remove('bg-blue-50', 'text-blue-700'); }
+        });
+        return; 
+    }
+
+    selectedSugIndex = -1; 
+    if (kw === "") { sugBox.classList.add("hidden"); renderList(window.currentData); return; }
+
+    const foundItems = window.currentData.filter(i => {
+        const title = i.judul ? i.judul.toLowerCase() : "";
+        const date = i.tanggal ? i.tanggal : "";
+        return title.includes(kw) || date.includes(kw);
+    }).slice(0, 5);
+
+    let html = "";
+    if (foundItems.length > 0) {
+        const label = window.activeCollection === 'berita' ? "Berita Ditemukan" : "Dokumentasi Ditemukan";
+        html += `<div class="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">${label}</div>`;
+        foundItems.forEach(item => {
+            html += `<div onclick="window.applySearch('${item.id}')" class="sug-item group cursor-pointer p-3 border-b border-slate-50 hover:bg-blue-50 transition-colors flex items-center gap-3">
+                <img src="${item.img || 'https://via.placeholder.com/50'}" class="w-8 h-8 rounded object-cover border border-slate-200">
+                <div class="min-w-0"><p class="text-xs font-bold text-slate-700 truncate group-hover:text-blue-700">${item.judul}</p><p class="text-[9px] text-slate-400">${item.tanggal}</p></div>
+            </div>`;
+        });
+    } else { html = `<div class="p-4 text-center text-xs font-bold text-slate-300 italic bg-white">Data tidak ditemukan</div>`; }
+
+    sugBox.innerHTML = html;
+    sugBox.classList.remove("hidden");
+    applyFilterToList(kw);
+};
+
+function applyFilterToList(kw) {
+    const filtered = window.currentData.filter(i => {
+        const title = i.judul ? i.judul.toLowerCase() : "";
+        const date = i.tanggal ? i.tanggal : "";
+        return title.includes(kw) || date.includes(kw);
+    });
+    renderList(filtered);
+}
+
+window.applySearch = function(id) {
+    const item = window.currentData.find(x => x.id === id);
+    if(!item) return;
+    document.getElementById("search-box").value = item.judul;
+    document.getElementById("search-suggestions").classList.add("hidden");
+    renderList([item]);
+    setTimeout(() => {
+        const card = document.getElementById(`card-${id}`);
+        if(card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.classList.add('ring-4', 'ring-blue-200', 'bg-blue-50');
+            setTimeout(() => card.classList.remove('ring-4', 'ring-blue-200', 'bg-blue-50'), 2000);
+        }
+    }, 200);
+};
+
+// --- Helper Functions ---
 function generateSequentialID(prefix, allData) {
   const now = new Date();
   const dateCode = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-
   let maxNo = 0;
-  const relevantData = allData.filter(
-    (item) => item.id && item.id.startsWith(`${prefix}_`),
-  );
-
-  relevantData.forEach((item) => {
+  const relevantData = allData.filter(item => item.id && item.id.startsWith(`${prefix}_`));
+  relevantData.forEach(item => {
     const parts = item.id.split("_");
     const lastPart = parts[parts.length - 1];
     const no = parseInt(lastPart);
     if (!isNaN(no) && no > maxNo) maxNo = no;
   });
-
-  const nextNo = String(maxNo + 1).padStart(4, "0");
-  return `${prefix}_${dateCode}_${nextNo}`;
+  return `${prefix}_${dateCode}_${String(maxNo + 1).padStart(4, "0")}`;
 }
 
-// --- HAPUS DATA + FOTO ---
+window.renderList = function(data) {
+    const listContainer = document.getElementById("list-data");
+    if (!listContainer) return;
+    listContainer.innerHTML = "";
+    
+    const sortedData = [...data].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+    if (sortedData.length === 0) {
+      listContainer.innerHTML = `<p class="text-center text-slate-400 text-xs py-10 italic">Tidak ada data.</p>`;
+      return;
+    }
+
+    sortedData.forEach((item) => {
+      const imgSrc = item.img || "https://via.placeholder.com/150?text=No+Img";
+      const idParts = item.id ? item.id.split("_") : [];
+      const shortId = idParts.length > 0 ? idParts[idParts.length - 1] : "NEW";
+
+      listContainer.innerHTML += `
+        <div id="card-${item.id}" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-md fade-in group relative mb-3">
+            <div class="flex items-start gap-4 mb-3">
+                <div class="w-16 h-16 rounded-lg bg-slate-50 border border-slate-200 overflow-hidden shrink-0">
+                     <img src="${imgSrc}" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-start">
+                        <h4 class="font-bold text-slate-800 text-sm line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">${item.judul}</h4>
+                        <span class="text-[9px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 ml-2 shrink-0">#${shortId}</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1.5">
+                        <span class="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            ${item.tanggal}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 border-t border-slate-50 pt-3">
+                <button onclick="window.showDetail('${item.id}')" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all flex justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
+                <button onclick="window.editItem('${item.id}')" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all flex justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
+                <button onclick="window.hapusItem('${item.id}')" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all flex justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+            </div>
+        </div>`;
+    });
+};
+
+// --- Modal & CRUD ---
+window.showDetail = function(id) {
+    const item = window.currentData.find(x => x.id === id);
+    if (!item) return;
+
+    document.body.classList.add('modal-open');
+
+    const overlay = document.getElementById("modal-overlay");
+    const content = document.getElementById("modal-content");
+    
+    overlay.className = "fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 transition-all duration-300";
+    content.className = "bg-white w-[90%] sm:w-full sm:max-w-md max-h-[85vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col transform scale-95 opacity-0 transition-all duration-300 relative";
+
+    const imgSrc = item.img || "https://via.placeholder.com/600x400?text=No+Image";
+    const gdriveLink = item.gdrive 
+        ? `<a href="${item.gdrive}" target="_blank" class="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-green-50 text-green-700 rounded-xl text-xs font-bold hover:bg-green-100 transition border border-green-200">
+             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.01 1.485c-2.082 0-3.754.02-4.743.061-.417.017-.79.053-1.127.106-.777.123-1.396.402-1.872.879-.477.476-.756 1.095-.88 1.872-.052.337-.088.71-.105 1.127-.04 1.059-.061 2.822-.061 5.044 0 2.221.02 3.985.061 5.044.017.417.053.79.106 1.127.123.777.402 1.396.879 1.872.476.477.756-1.095.88-1.872.052-.337.088-.71.105-1.127.04-1.059.061-2.822.061-5.044-.061zm-4.743 1.492h9.486c1.059 0 1.936.02 2.604.061.27.017.433.036.52.053.25.04.417.114.58.277.163.163.237.33.277.58.017.087.036.25.053.52.041.668.061 1.545.061 2.604v9.486c0 1.059-.02 1.936-.061 2.604-.017.27-.036.433-.053.52-.04.25-.114.417-.277.58-.163.163-.33.237-.58.277-.087.017-.25.036-.52.053-.668-.041-1.545-.061-2.604.061h-9.486c-1.059 0-1.936-.02-2.604-.061-.27-.017-.433-.036-.52-.053-.25-.04-.417-.114-.58-.277-.163-.163-.237-.33-.277-.58-.017-.087-.036-.25-.053-.52-.041-.668-.061-1.545-.061-2.604v-9.486c0-1.059.02-1.936.061-2.604.017-.27.036-.433.053-.52.04-.25.114.417.277.58.163.163.33.237.58.277.087.017.25.036.52.053.668-.041 1.545-.061 2.604-.061zM12 6.945l-4.223 7.555h8.446L12 6.945z"/></svg>
+             Buka Dokumentasi G-Drive
+           </a>`
+        : "";
+
+    content.innerHTML = `
+        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0 z-10">
+            <h3 class="font-bold text-slate-800 text-lg">Detail Publikasi</h3>
+            <button onclick="window.closeModal()" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="overflow-y-auto custom-scrollbar p-5 bg-slate-50/50">
+            <div class="flex flex-col items-center mb-6">
+                <div class="relative w-full h-48 rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-white group">
+                    <img src="${imgSrc}" class="w-full h-full object-contain p-1">
+                    <div class="absolute top-3 right-3">
+                         <span class="px-3 py-1 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider rounded-lg border border-white/20 shadow-lg">${item.kategori}</span>
+                    </div>
+                </div>
+                <h2 class="mt-4 text-lg font-bold text-slate-800 text-center leading-tight px-2">${item.judul}</h2>
+                <div class="flex items-center gap-1.5 mt-2 text-xs font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    ${item.tanggal}
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] text-slate-400 font-bold uppercase mb-2 block tracking-widest border-b border-slate-50 pb-2">Deskripsi Konten</span>
+                <div class="prose prose-slate prose-sm max-w-none text-slate-600 leading-relaxed whitespace-pre-line text-xs">${item.deskripsi}</div>
+            </div>
+            ${gdriveLink}
+            <div class="mt-5 pt-4 border-t border-slate-200/60 flex justify-between items-center">
+                <span class="text-[10px] font-bold text-slate-400 uppercase">System ID</span>
+                <code class="text-[10px] font-mono text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded select-all">${item.id}</code>
+            </div>
+        </div>
+        <div class="p-4 border-t border-slate-100 bg-white shrink-0 flex gap-3">
+            <button onclick="window.editItem('${item.id}'); window.closeModal();" class="flex-1 bg-slate-900 hover:bg-black text-white py-3 rounded-xl font-bold text-sm uppercase shadow-lg shadow-slate-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2">Edit</button>
+            <button onclick="window.hapusItem('${item.id}'); window.closeModal();" class="px-5 py-3 bg-white border border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 rounded-xl font-bold text-sm uppercase transition-all flex items-center justify-center gap-2">Hapus</button>
+        </div>
+    `;
+
+    overlay.classList.remove("hidden");
+    overlay.classList.add("flex");
+    setTimeout(() => {
+        content.classList.remove("opacity-0", "scale-95");
+        content.classList.add("opacity-100", "scale-100");
+    }, 10);
+};
+
+window.closeModal = function() {
+    document.body.classList.remove('modal-open');
+    const overlay = document.getElementById("modal-overlay");
+    const content = document.getElementById("modal-content");
+    content.classList.remove("opacity-100", "scale-100");
+    content.classList.add("opacity-0", "scale-95");
+    setTimeout(() => {
+        overlay.classList.add("hidden");
+        overlay.classList.remove("flex");
+        content.innerHTML = "";
+    }, 300);
+};
+
+const overlayEl = document.getElementById("modal-overlay");
+if(overlayEl) {
+    overlayEl.addEventListener("click", (e) => {
+        if (e.target.id === "modal-overlay") window.closeModal();
+    });
+}
+
 window.hapusItem = async function (id) {
   const item = window.currentData.find((x) => x.id === id);
   if (!item) return;
@@ -32,38 +300,26 @@ window.hapusItem = async function (id) {
     text: "Data & Foto akan dihapus permanen!",
     icon: "warning",
     showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
+    confirmButtonColor: "#0f172a", 
+    cancelButtonColor: "#94a3b8",
     confirmButtonText: "Ya, Hapus!",
+    cancelButtonText: "Batal"
   });
 
   if (!result.isConfirmed) return;
 
   try {
-    Swal.fire({
-      title: "Membersihkan...",
-      didOpen: () => Swal.showLoading(),
-      allowOutsideClick: false,
-    });
-    const koleksi = document.getElementById("inp-kategori").value || "berita";
-    const bucket =
-      koleksi === "berita" ? "berita-images" : "dokumentasi-images";
-
+    Swal.fire({ title: "Membersihkan...", didOpen: () => Swal.showLoading(), allowOutsideClick: false });
+    const koleksi = window.activeCollection; 
+    const bucket = koleksi === "berita" ? "berita-images" : "dokumentasi-images";
     if (item.img) await window.adminDB.deleteFile(bucket, item.img);
     await window.adminDB.delete(koleksi, id);
-
-    Swal.fire({
-      title: "Bersih!",
-      icon: "success",
-      timer: 1000,
-      showConfirmButton: false,
-    });
+    Swal.fire({ title: "Bersih!", icon: "success", timer: 1000, showConfirmButton: false });
   } catch (e) {
     Swal.fire("Error", e.message, "error");
   }
 };
 
-// --- EDIT DATA ---
 window.editItem = function (id) {
   const item = window.currentData.find((x) => x.id === id);
   if (!item) return;
@@ -74,16 +330,8 @@ window.editItem = function (id) {
   document.getElementById("inp-desc").value = item.deskripsi || "";
   document.getElementById("inp-img-url").value = item.img || "";
 
-  // GDrive field
   const inpGDrive = document.getElementById("inp-gdrive");
-  const containerGDrive = document.getElementById("container-gdrive");
   if (inpGDrive) inpGDrive.value = item.gdrive || "";
-
-  if (item.kategori === "dokumentasi" && containerGDrive) {
-    containerGDrive.classList.remove("hidden");
-  } else if (containerGDrive) {
-    containerGDrive.classList.add("hidden");
-  }
 
   if (item.img) {
     document.getElementById("img-preview").src = item.img;
@@ -93,102 +341,56 @@ window.editItem = function (id) {
 
   const btn = document.getElementById("btn-submit");
   btn.innerText = "UPDATE DATA";
-  btn.classList.replace("bg-slate-900", "bg-blue-600");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  btn.className = "w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-lg shadow-blue-200";
+  
+  if(window.innerWidth < 1024) window.toggleListMobile();
+  document.getElementById("form-publikasi").scrollIntoView({ behavior: "smooth" });
 };
 
-// --- MAIN LOGIC ---
 document.addEventListener("DOMContentLoaded", () => {
   window.currentData = [];
   const dateInput = document.getElementById("inp-date");
   if (dateInput) dateInput.valueAsDate = new Date();
 
-  const kategoriSelect = document.getElementById("inp-kategori");
-  const labelKoleksi = document.getElementById("lbl-koleksi");
   const inpFile = document.getElementById("inp-file");
   const form = document.getElementById("form-publikasi");
-  const containerGDrive = document.getElementById("container-gdrive");
-  const inpGDrive = document.getElementById("inp-gdrive");
 
-  // --- FIX START: Menunggu Firebase Auth ---
+  const searchBox = document.getElementById("search-box");
+  if(searchBox) {
+    searchBox.addEventListener('keyup', (e) => window.handleSearch(searchBox.value, e));
+    searchBox.addEventListener('keydown', (e) => {
+        if (["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) {
+            e.preventDefault(); 
+            window.handleSearch(searchBox.value, e);
+        }
+    });
+    document.addEventListener('click', (e) => {
+        const searchContainer = document.querySelector('.relative.z-search'); 
+        if (searchContainer && !searchContainer.contains(e.target)) {
+            document.getElementById("search-suggestions").classList.add("hidden");
+        }
+    });
+  }
+
   const checkDB = setInterval(() => {
     if (window.adminDB && window.firebaseAuth) {
       clearInterval(checkDB);
-
       onAuthStateChanged(window.firebaseAuth, (user) => {
         if (user) {
-          console.log("✅ Auth OK. Mengambil Data Publikasi...");
-          loadData(); // Load data hanya jika sudah login
+          window.loadData(); 
         } else {
-          console.warn("⚠️ User tidak login. Redirecting...");
           sessionStorage.removeItem("isLoggedIn");
           window.location.href = "login";
         }
       });
     }
   }, 500);
-  // --- FIX END ---
 
-  if (kategoriSelect) {
-    kategoriSelect.addEventListener("change", () => {
-      if (labelKoleksi)
-        labelKoleksi.innerText = kategoriSelect.value.toUpperCase();
-      if (kategoriSelect.value === "dokumentasi") {
-        containerGDrive.classList.remove("hidden");
-      } else {
-        containerGDrive.classList.add("hidden");
-        if (inpGDrive) inpGDrive.value = "";
-      }
-      loadData();
-    });
-  }
-
-  function loadData() {
-    const koleksi = kategoriSelect ? kategoriSelect.value : "berita";
+  window.loadData = function() {
+    const koleksi = window.activeCollection;
     window.adminDB.listenList(koleksi, (data) => {
       window.currentData = data;
       renderList(data);
-    });
-  }
-
-  function renderList(data) {
-    const listContainer = document.getElementById("list-data");
-    listContainer.innerHTML = "";
-    data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-
-    if (data.length === 0) {
-      listContainer.innerHTML = `<p class="text-center text-slate-400 text-xs py-10">Belum ada data.</p>`;
-      return;
-    }
-
-    data.forEach((item) => {
-      const imgSrc = item.img || "https://via.placeholder.com/150";
-      const noUrut =
-        item.id && item.id.includes("_")
-          ? "#" + item.id.split("_").pop()
-          : "#New";
-      const gdriveBtn = item.gdrive
-        ? `<a href="${item.gdrive}" target="_blank" class="px-3 py-1 bg-green-50 text-green-600 rounded text-[10px] font-bold hover:bg-green-600 hover:text-white transition">G-DRIVE</a>`
-        : "";
-
-      listContainer.innerHTML += `
-                <div class="flex gap-3 p-3 bg-white rounded-xl border border-slate-100 mb-3 hover:shadow-md transition">
-                    <div class="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 shrink-0">
-                        <img src="${imgSrc}" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-start">
-                            <h4 class="font-bold text-slate-800 text-sm line-clamp-2 pr-2">${item.judul}</h4>
-                            <span class="text-[9px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">${noUrut}</span>
-                        </div>
-                        <p class="text-[10px] text-slate-400 mt-1">${item.tanggal}</p>
-                        <div class="flex gap-2 mt-3">
-                            ${gdriveBtn}
-                            <button onclick="window.editItem('${item.id}')" class="px-3 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold hover:bg-blue-600 hover:text-white transition">EDIT</button>
-                            <button onclick="window.hapusItem('${item.id}')" class="px-3 py-1 bg-red-50 text-red-600 rounded text-[10px] font-bold hover:bg-red-600 hover:text-white transition">HAPUS</button>
-                        </div>
-                    </div>
-                </div>`;
     });
   }
 
@@ -196,20 +398,14 @@ document.addEventListener("DOMContentLoaded", () => {
     inpFile.addEventListener("change", function () {
       if (this.files[0]) {
         if (this.files[0].size > 2 * 1024 * 1024) {
-          Swal.fire(
-            "File Terlalu Besar",
-            "Maksimal ukuran foto adalah 2MB",
-            "warning",
-          );
+          Swal.fire("File Terlalu Besar", "Max 2MB", "warning");
           this.value = "";
           return;
         }
         const reader = new FileReader();
         reader.onload = (e) => {
           document.getElementById("img-preview").src = e.target.result;
-          document
-            .getElementById("preview-container")
-            .classList.remove("hidden");
+          document.getElementById("preview-container").classList.remove("hidden");
           document.getElementById("upload-placeholder").classList.add("hidden");
         };
         reader.readAsDataURL(this.files[0]);
@@ -226,28 +422,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const gdrive = document.getElementById("inp-gdrive").value.trim();
     const file = inpFile.files[0];
     const currentID = document.getElementById("data-id").value;
-    const koleksi = kategoriSelect.value;
+    const koleksi = window.activeCollection;
 
-    if (!judul)
-      return Swal.fire("Input Kosong", "Judul tidak boleh kosong!", "warning");
-    if (!tglVal)
-      return Swal.fire("Input Kosong", "Tanggal harus dipilih!", "warning");
-    if (!deskripsi)
-      return Swal.fire(
-        "Input Kosong",
-        "Deskripsi konten harus diisi!",
-        "warning",
-      );
+    if (!judul) return Swal.fire("Input Kosong", "Judul tidak boleh kosong!", "warning");
+    if (!tglVal) return Swal.fire("Input Kosong", "Tanggal harus dipilih!", "warning");
+    if (!deskripsi) return Swal.fire("Input Kosong", "Deskripsi konten harus diisi!", "warning");
 
     if (koleksi === "dokumentasi" && gdrive) {
-      const gdrivePattern =
-        /^(https?:\/\/)?(www\.)?(drive\.google\.com|goo\.gl)\/.+$/;
+      const gdrivePattern = /^(https?:\/\/)?(www\.)?(drive\.google\.com|goo\.gl)\/.+$/;
       if (!gdrivePattern.test(gdrive)) {
-        return Swal.fire(
-          "Link Tidak Valid",
-          "Mohon masukkan link Google Drive yang benar!",
-          "error",
-        );
+        return Swal.fire("Link Tidak Valid", "Mohon masukkan link Google Drive yang benar!", "error");
       }
     }
 
@@ -255,8 +439,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnSubmit.disabled = true;
 
     try {
-      let docID =
-        currentID || generateSequentialID(koleksi, window.currentData);
+      let docID = currentID || generateSequentialID(koleksi, window.currentData);
       const dateObj = new Date(tglVal);
       const yearStr = dateObj.getFullYear().toString();
       const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -264,12 +447,9 @@ document.addEventListener("DOMContentLoaded", () => {
       let finalUrl = document.getElementById("inp-img-url").value;
 
       if (file) {
-        const bucket =
-          koleksi === "berita" ? "berita-images" : "dokumentasi-images";
+        const bucket = koleksi === "berita" ? "berita-images" : "dokumentasi-images";
         if (currentID && finalUrl) {
-          try {
-            await window.adminDB.deleteFile(bucket, finalUrl);
-          } catch (e) {}
+          try { await window.adminDB.deleteFile(bucket, finalUrl); } catch (e) {}
         }
         const folderPath = `${yearStr}/${monthStr}/${docID}`;
         finalUrl = await window.adminDB.uploadFile(file, bucket, folderPath);
@@ -288,13 +468,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       await window.adminDB.saveWithId(koleksi, docID, data);
-      Swal.fire({
-        title: "Sukses",
-        text: "Data berhasil disimpan di database.",
-        icon: "success",
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      Swal.fire({ title: "Sukses", text: "Data berhasil disimpan.", icon: "success", timer: 1500, showConfirmButton: false });
       window.resetForm();
     } catch (err) {
       Swal.fire("Error", err.message, "error");
@@ -308,15 +482,22 @@ document.addEventListener("DOMContentLoaded", () => {
     form.reset();
     document.getElementById("data-id").value = "";
     document.getElementById("inp-img-url").value = "";
-    if (inpGDrive) inpGDrive.value = "";
-    if (containerGDrive) containerGDrive.classList.add("hidden");
+    
+    const koleksi = window.activeCollection;
+    if (koleksi === "berita") {
+        document.getElementById("container-gdrive").classList.add("hidden");
+    } else {
+        document.getElementById("container-gdrive").classList.remove("hidden");
+    }
+    
     if (dateInput) dateInput.valueAsDate = new Date();
+    
     document.getElementById("preview-container").classList.add("hidden");
     document.getElementById("upload-placeholder").classList.remove("hidden");
     document.getElementById("img-preview").src = "";
+    
     const btn = document.getElementById("btn-submit");
     btn.innerText = "SIMPAN DATA";
-    btn.classList.add("bg-slate-900");
-    btn.classList.remove("bg-blue-600");
+    btn.className = "w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-black transition shadow-lg shadow-slate-200";
   };
 });
