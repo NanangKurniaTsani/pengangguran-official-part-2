@@ -629,7 +629,8 @@ window.editDept = function(id) {
     inpId.classList.remove("bg-slate-100");
 
     document.getElementById("inp-dept-name").value = dept.nama_lengkap;
-    document.getElementById("inp-dept-desc").value = dept.deskripsi || "";
+    // UPDATE: Menggunakan tugas_pokok
+    document.getElementById("inp-dept-tugas-pokok").value = dept.tugas_pokok || "";
     document.getElementById("inp-dept-order").value = dept.no_urut;
     
     const btn = document.getElementById("btn-save-dept");
@@ -668,7 +669,8 @@ document.getElementById("form-dept").addEventListener("submit", async (e) => {
     const btn = document.getElementById("btn-save-dept");
     const id = document.getElementById("inp-dept-id").value.trim().toUpperCase().replace(/\s+/g, '_');
     const nama = document.getElementById("inp-dept-name").value.trim();
-    const desc = document.getElementById("inp-dept-desc").value.trim();
+    // UPDATE: Ambil nilai dari input tugas pokok
+    const tugasPokok = document.getElementById("inp-dept-tugas-pokok").value.trim();
     const urut = parseInt(document.getElementById("inp-dept-order").value);
     const kode = String(urut).padStart(2, '0');
 
@@ -680,7 +682,8 @@ document.getElementById("form-dept").addEventListener("submit", async (e) => {
     btn.disabled = true; btn.innerText = "Processing...";
     
     try {
-        const dataToSave = { id, nama_lengkap: nama, deskripsi: desc, no_urut: urut, kode: kode, updatedAt: new Date().toISOString() };
+        // UPDATE: Simpan sebagai tugas_pokok
+        const dataToSave = { id, nama_lengkap: nama, tugas_pokok: tugasPokok, no_urut: urut, kode: kode, updatedAt: new Date().toISOString() };
 
         if (window.isEditingDept && isIdChanged) {
             await window.adminDB.saveWithId("departemen_data", id, dataToSave);
