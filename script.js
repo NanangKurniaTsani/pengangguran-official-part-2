@@ -1,4 +1,3 @@
-import { option } from "lucide-static";
 import Swal from "sweetalert2";
 
 // UI HELPER
@@ -35,11 +34,13 @@ document.addEventListener("DOMContentLoaded", () => {
         cancelButtonText: "Batal",
       }).then((result) => {
         if (result.isConfirmed) {
+          // Hapus sesi
           sessionStorage.removeItem("isLoggedIn");
           sessionStorage.removeItem("userEmail");
           sessionStorage.clear();
 
-          window.location.replace = "login.html";
+          // PERBAIKAN DI SINI: Gunakan kurung () karena ini function
+          window.location.replace("login.html"); 
         }
       });
     });

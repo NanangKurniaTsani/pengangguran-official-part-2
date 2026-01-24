@@ -6,6 +6,32 @@ window.currentData = [];
 window.activeCollection = "berita";
 let selectedSugIndex = -1;
 
+// --- Helper: Slug Generator ---
+function createSlug(text) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')           
+    .replace(/[^\w\-]+/g, '')       
+    .replace(/\-\-+/g, '-')         
+    .replace(/^-+/, '')             
+    .replace(/-+$/, '');            
+}
+
+// --- Helper: ID Generator ---
+// Format: kategori_YYYYMMDD_slug (TANPA ANGKA RANDOM)
+function generateSlugID(prefix, title, dateVal) {
+  const dateObj = new Date(dateVal);
+  const yyyy = dateObj.getFullYear();
+  const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const dd = String(dateObj.getDate()).padStart(2, "0");
+  const dateStr = `${yyyy}${mm}${dd}`;
+  const slug = createSlug(title);
+  
+  return `${prefix}_${dateStr}_${slug}`;
+}
+
 // --- UI Logic ---
 window.toggleFormMenu = function() {
     const dropdown = document.getElementById("form-menu-dropdown");
@@ -21,11 +47,29 @@ window.toggleFormMenu = function() {
     }
 };
 
+// AUTO RESET: Klik di luar form = Reset
 document.addEventListener("click", (e) => {
+    // Dropdown Menu Logic
     const dropdown = document.getElementById("form-menu-dropdown");
     const trigger = document.querySelector('[onclick="window.toggleFormMenu()"]');
     if (dropdown && !dropdown.classList.contains("hidden") && !trigger.contains(e.target) && !dropdown.contains(e.target)) {
         window.toggleFormMenu();
+    }
+
+    // AUTO RESET FORM LOGIC
+    const currentID = document.getElementById("data-id")?.value;
+    if (currentID) {
+        const formCard = document.getElementById("form-container-card");
+        const modalContent = document.getElementById("modal-content");
+        
+        const isClickInsideForm = formCard && formCard.contains(e.target);
+        const isClickInsideModal = modalContent && modalContent.contains(e.target);
+        const isClickOnEditBtn = e.target.closest('button[onclick^="window.editItem"]');
+        const isSwal = e.target.closest('.swal2-container');
+
+        if (!isClickInsideForm && !isClickInsideModal && !isClickOnEditBtn && !isSwal) {
+            window.resetForm();
+        }
     }
 });
 
@@ -47,12 +91,10 @@ window.switchMode = function(mode) {
     document.getElementById("lbl-koleksi").innerText = mode.toUpperCase();
     document.getElementById("inp-kategori").value = mode;
     
-    const containerGDrive = document.getElementById("container-gdrive");
-    if (mode === 'dokumentasi') containerGDrive.classList.remove("hidden");
-    else containerGDrive.classList.add("hidden");
-    
-    window.toggleFormMenu();
+    // UI Reset Total
     window.resetForm();
+    window.toggleFormMenu();
+    
     window.resetSearch();
     if (typeof window.loadData === "function") window.loadData();
 };
@@ -146,27 +188,22 @@ window.applySearch = function(id) {
     }, 200);
 };
 
-// --- Helper Functions ---
-function generateSequentialID(prefix, allData) {
-  const now = new Date();
-  const dateCode = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  let maxNo = 0;
-  const relevantData = allData.filter(item => item.id && item.id.startsWith(`${prefix}_`));
-  relevantData.forEach(item => {
-    const parts = item.id.split("_");
-    const lastPart = parts[parts.length - 1];
-    const no = parseInt(lastPart);
-    if (!isNaN(no) && no > maxNo) maxNo = no;
-  });
-  return `${prefix}_${dateCode}_${String(maxNo + 1).padStart(4, "0")}`;
-}
-
+// --- List Renderer ---
 window.renderList = function(data) {
     const listContainer = document.getElementById("list-data");
     if (!listContainer) return;
     listContainer.innerHTML = "";
     
-    const sortedData = [...data].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+    // Sort: Terbaru (Date) -> Terbaru (UpdatedAt/ID)
+    const sortedData = [...data].sort((a, b) => {
+        const dateA = new Date(a.tanggal);
+        const dateB = new Date(b.tanggal);
+        if (dateB - dateA !== 0) return dateB - dateA;
+        const updateA = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
+        const updateB = b.updatedAt ? new Date(b.updatedAt) : new Date(0);
+        return updateB - updateA;
+    });
+
     if (sortedData.length === 0) {
       listContainer.innerHTML = `<p class="text-center text-slate-400 text-xs py-10 italic">Tidak ada data.</p>`;
       return;
@@ -174,8 +211,15 @@ window.renderList = function(data) {
 
     sortedData.forEach((item) => {
       const imgSrc = item.img || "https://via.placeholder.com/150?text=No+Img";
+      
       const idParts = item.id ? item.id.split("_") : [];
-      const shortId = idParts.length > 0 ? idParts[idParts.length - 1] : "NEW";
+      let shortDisplay = "";
+      if (idParts.length >= 3) {
+          shortDisplay = idParts[2]; // Slug
+          if(shortDisplay.length > 15) shortDisplay = shortDisplay.substring(0, 15) + "...";
+      } else {
+          shortDisplay = idParts[idParts.length - 1];
+      }
 
       listContainer.innerHTML += `
         <div id="card-${item.id}" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-md fade-in group relative mb-3">
@@ -186,7 +230,7 @@ window.renderList = function(data) {
                 <div class="flex-1 min-w-0">
                     <div class="flex justify-between items-start">
                         <h4 class="font-bold text-slate-800 text-sm line-clamp-2 leading-snug group-hover:text-blue-600 transition-colors">${item.judul}</h4>
-                        <span class="text-[9px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 ml-2 shrink-0">#${shortId}</span>
+                        <span class="text-[9px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 ml-2 shrink-0 truncate max-w-[80px]" title="${item.id}">#${shortDisplay}</span>
                     </div>
                     <div class="flex items-center gap-2 mt-1.5">
                         <span class="text-[10px] font-bold text-slate-400 flex items-center gap-1">
@@ -219,16 +263,26 @@ window.showDetail = function(id) {
     content.className = "bg-white w-[90%] sm:w-full sm:max-w-md max-h-[85vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col transform scale-95 opacity-0 transition-all duration-300 relative";
 
     const imgSrc = item.img || "https://via.placeholder.com/600x400?text=No+Image";
+    
     const gdriveLink = item.gdrive 
         ? `<a href="${item.gdrive}" target="_blank" class="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-green-50 text-green-700 rounded-xl text-xs font-bold hover:bg-green-100 transition border border-green-200">
-             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.01 1.485c-2.082 0-3.754.02-4.743.061-.417.017-.79.053-1.127.106-.777.123-1.396.402-1.872.879-.477.476-.756 1.095-.88 1.872-.052.337-.088.71-.105 1.127-.04 1.059-.061 2.822-.061 5.044 0 2.221.02 3.985.061 5.044.017.417.053.79.106 1.127.123.777.402 1.396.879 1.872.476.477.756-1.095.88-1.872.052-.337.088-.71.105-1.127.04-1.059.061-2.822.061-5.044-.061zm-4.743 1.492h9.486c1.059 0 1.936.02 2.604.061.27.017.433.036.52.053.25.04.417.114.58.277.163.163.237.33.277.58.017.087.036.25.053.52.041.668.061 1.545.061 2.604v9.486c0 1.059-.02 1.936-.061 2.604-.017.27-.036.433-.053.52-.04.25-.114.417-.277.58-.163.163-.33.237-.58.277-.087.017-.25.036-.52.053-.668-.041-1.545-.061-2.604.061h-9.486c-1.059 0-1.936-.02-2.604-.061-.27-.017-.433-.036-.52-.053-.25-.04-.417-.114-.58-.277-.163-.163-.237-.33-.277-.58-.017-.087-.036-.25-.053-.52-.041-.668-.061-1.545-.061-2.604v-9.486c0-1.059.02-1.936.061-2.604.017-.27.036-.433.053-.52.04-.25.114.417.277.58.163.163.33.237.58.277.087.017.25.036.52.053.668-.041 1.545-.061 2.604-.061zM12 6.945l-4.223 7.555h8.446L12 6.945z"/></svg>
+             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.01 1.485c-2.082 0-3.754.02-4.743.061-.417.017-.79.053-1.127.106-.777.123-1.396.402-1.872.879-.477.476-.756 1.095-.88 1.872-.052.337-.088.71-.105 1.127-.04 1.059-.061 2.822-.061 5.044 0 2.221.02 3.985.061 5.044.017.417.053.79.106 1.127.123.777.402 1.396.879 1.872.476.477.756-1.095.88-1.872.052-.337.088-.71.105-1.127.04-1.059.061-2.822.061-5.044-.061zm-4.743 1.492h9.486c1.059 0 1.936.02 2.604.061.27.017.433.036.52.053.25.04.417.114.58.277.163.163.237.33.277.58.017.087.036.25.053.52.041.668.061 1.545.061 2.604v9.486c0 1.059-.02 1.936-.061 2.604-.017.27-.036.433-.053.52-.04.25-.114.417-.277.58-.163.163-.33.237.58.277.087.017.25.036.52.053.668-.041 1.545-.061 2.604-.061h-9.486c-1.059 0-1.936-.02-2.604-.061-.27-.017-.433-.036-.52-.053-.25-.04-.417-.114-.58-.277-.163-.163-.237-.33-.277-.58-.017-.087-.036-.25-.053-.52-.041-.668-.061-1.545-.061-2.604v-9.486c0-1.059.02-1.936.061-2.604.017-.27.036-.433.053-.52.04-.25.114.417.277.58.163.163.33.237.58.277.087.017.25.036.52.053.668-.041 1.545-.061 2.604-.061zM12 6.945l-4.223 7.555h8.446L12 6.945z"/></svg>
              Buka Dokumentasi G-Drive
            </a>`
         : "";
 
+    // Deskripsi Logic: HANYA TAMPIL JIKA BERITA
+    let descHtml = "";
+    if (item.kategori === 'berita' && item.deskripsi && item.deskripsi.trim() !== "") {
+        descHtml = `<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-[10px] text-slate-400 font-bold uppercase mb-2 block tracking-widest border-b border-slate-50 pb-2">Deskripsi Konten</span>
+                <div class="prose prose-slate prose-sm max-w-none text-slate-600 leading-relaxed whitespace-pre-line text-xs">${item.deskripsi}</div>
+            </div>`;
+    }
+
     content.innerHTML = `
         <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0 z-10">
-            <h3 class="font-bold text-slate-800 text-lg">Detail Publikasi</h3>
+            <h3 class="font-bold text-slate-800 text-lg">Detail ${item.kategori === 'berita' ? 'Berita' : 'Dokumentasi'}</h3>
             <button onclick="window.closeModal()" class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
@@ -247,14 +301,11 @@ window.showDetail = function(id) {
                     ${item.tanggal}
                 </div>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <span class="text-[10px] text-slate-400 font-bold uppercase mb-2 block tracking-widest border-b border-slate-50 pb-2">Deskripsi Konten</span>
-                <div class="prose prose-slate prose-sm max-w-none text-slate-600 leading-relaxed whitespace-pre-line text-xs">${item.deskripsi}</div>
-            </div>
+            ${descHtml}
             ${gdriveLink}
             <div class="mt-5 pt-4 border-t border-slate-200/60 flex justify-between items-center">
                 <span class="text-[10px] font-bold text-slate-400 uppercase">System ID</span>
-                <code class="text-[10px] font-mono text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded select-all">${item.id}</code>
+                <code class="text-[10px] font-mono text-slate-500 bg-white border border-slate-200 px-2 py-1 rounded select-all break-all max-w-[200px] truncate" title="${item.id}">${item.id}</code>
             </div>
         </div>
         <div class="p-4 border-t border-slate-100 bg-white shrink-0 flex gap-3">
@@ -397,8 +448,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (inpFile) {
     inpFile.addEventListener("change", function () {
       if (this.files[0]) {
-        if (this.files[0].size > 2 * 1024 * 1024) {
-          Swal.fire("File Terlalu Besar", "Max 2MB", "warning");
+        // Max 5MB
+        if (this.files[0].size > 5 * 1024 * 1024) {
+          Swal.fire("File Terlalu Besar", "Max 5MB", "warning");
           this.value = "";
           return;
         }
@@ -426,7 +478,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!judul) return Swal.fire("Input Kosong", "Judul tidak boleh kosong!", "warning");
     if (!tglVal) return Swal.fire("Input Kosong", "Tanggal harus dipilih!", "warning");
-    if (!deskripsi) return Swal.fire("Input Kosong", "Deskripsi konten harus diisi!", "warning");
+    
+    // Validasi deskripsi hanya untuk Berita
+    if (koleksi === 'berita' && !deskripsi) return Swal.fire("Input Kosong", "Deskripsi konten berita harus diisi!", "warning");
 
     if (koleksi === "dokumentasi" && gdrive) {
       const gdrivePattern = /^(https?:\/\/)?(www\.)?(drive\.google\.com|goo\.gl)\/.+$/;
@@ -439,7 +493,9 @@ document.addEventListener("DOMContentLoaded", () => {
     btnSubmit.disabled = true;
 
     try {
-      let docID = currentID || generateSequentialID(koleksi, window.currentData);
+      // ID Generator tanpa random
+      let docID = currentID || generateSlugID(koleksi, judul, tglVal);
+      
       const dateObj = new Date(tglVal);
       const yearStr = dateObj.getFullYear().toString();
       const monthStr = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -455,17 +511,24 @@ document.addEventListener("DOMContentLoaded", () => {
         finalUrl = await window.adminDB.uploadFile(file, bucket, folderPath);
       }
 
+      // --- PEMISAHAN DATA OBJEK YANG KETAT ---
       const data = {
         kategori: koleksi,
         judul: judul,
         tanggal: tglVal,
-        deskripsi: deskripsi,
-        gdrive: gdrive || "",
         img: finalUrl || "",
         tahun: yearStr,
         bulan: monthStr,
         updatedAt: new Date().toISOString(),
       };
+
+      if (koleksi === "berita") {
+        // Jika Berita: Simpan Deskripsi, JANGAN simpan GDrive
+        data.deskripsi = deskripsi;
+      } else {
+        // Jika Dokumentasi: Simpan GDrive, JANGAN simpan Deskripsi
+        data.gdrive = gdrive || "";
+      }
 
       await window.adminDB.saveWithId(koleksi, docID, data);
       Swal.fire({ title: "Sukses", text: "Data berhasil disimpan.", icon: "success", timer: 1500, showConfirmButton: false });
@@ -483,11 +546,17 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("data-id").value = "";
     document.getElementById("inp-img-url").value = "";
     
+    // Logic Reset UI
     const koleksi = window.activeCollection;
-    if (koleksi === "berita") {
-        document.getElementById("container-gdrive").classList.add("hidden");
+    const containerGDrive = document.getElementById("container-gdrive");
+    const containerDesc = document.getElementById("container-desc");
+    
+    if (koleksi === 'dokumentasi') {
+        if(containerGDrive) containerGDrive.classList.remove("hidden");
+        if(containerDesc) containerDesc.classList.add("hidden");
     } else {
-        document.getElementById("container-gdrive").classList.remove("hidden");
+        if(containerGDrive) containerGDrive.classList.add("hidden");
+        if(containerDesc) containerDesc.classList.remove("hidden");
     }
     
     if (dateInput) dateInput.valueAsDate = new Date();
