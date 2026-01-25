@@ -19,7 +19,7 @@ Project ini pakai **Firebase** (Auth) dan **Supabase** (Database). Simak panduan
 
 ⚠️ **PENTING:** Saat kamu download (clone) project ini dari GitHub, file `.env` **TIDAK AKAN ADA** (karena demi keamanan, file itu tidak di-upload).
 
-Kamu **WAJIB** membuat file baru bernama `.env` di folder paling luar (root), lalu isi dengan kredensial di bawah ini (minta value aslinya ke kating/pengurus sebelumnya):
+Kamu **WAJIB** membuat file baru bernama `.env` di folder paling luar (root), lalu isi dengan kredensial di bawah ini (minta value aslinya ke **kating/pengurus sebelumnya**):
 
 ```env
 # Firebase Config
@@ -88,12 +88,8 @@ Panduan dan sistem ini adalah warisan dan dedikasi dari :
 
 <div align="center">
   <img src="./images/logo-kabinet.png" width="120" alt="Logo Nawasena Pradipta" style="margin-bottom: 10px;">
-  
-  <h3>
-    Kabinet 
-    <span style="color: #CC3625;">Nawasena</span> 
-    <span style="color: #ED8921;">Pradipta</span>
-  </h3>
+  <br>
+  <img src="./images/footer-md.png" width="250" alt="Nawasena Pradipta">
   
   <p><em>Sengaja kami buat terdokumentasi rapi biar kalian yang melanjutkan perjuangan ini nggak kebingungan.<br>
   Kalau ada error atau bingung soal logic, silakan cek <strong>Contributors</strong> atau tanya ke demisioner tahun periode 25/26.</em></p>
